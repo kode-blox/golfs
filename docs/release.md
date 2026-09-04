@@ -12,18 +12,21 @@ workflow uses a GitHub App installation token because pushes made with the
 repository `GITHUB_TOKEN` do not trigger the downstream `push` workflow.
 
 A push to `main` runs the caller-owned CI/CD Pipeline workflow. Alongside CI,
-the pipeline detects changes to the two authoritative version files. It calls
-the separate Release workflow only when CI succeeds and at least one authority
-changed. If `VERSION` changed, Release publishes the Linux amd64 image as
-`ghcr.io/kode-blox/golfs:X.Y.Z`. If `charts/VERSION` changed, it publishes the
-OCI chart as `ghcr.io/kode-blox/charts/golfs:X.Y.Z` and then updates the selected
-GOLFS dependency in the private GitOps charts repository. Successful releases
-create immutable `vX.Y.Z` application tags and `chart-vX.Y.Z` chart tags. Tags
-record a validated release; they are not version authority. No mutable `latest`
-tag is created. After the matching tag exists, Release creates an independent
-published GitHub Release for each changed authority. The application and chart
-therefore have separate release histories even when both are changed in the
-same push.
+the pipeline validates the two authoritative version files and checks whether
+their corresponding immutable release tags exist. It calls the separate Release
+workflow only when CI succeeds and the current application or chart version is
+not already tagged. This lets a later passing `main` commit complete a release
+that an earlier version-bump commit could not start because CI failed, without
+requiring a synthetic version edit. If `VERSION` is untagged, Release publishes
+the Linux amd64 image as `ghcr.io/kode-blox/golfs:X.Y.Z`. If `charts/VERSION` is
+untagged, it publishes the OCI chart as `ghcr.io/kode-blox/charts/golfs:X.Y.Z`
+and then updates the selected GOLFS dependency in the private GitOps charts
+repository. Successful releases create immutable `vX.Y.Z` application tags and
+`chart-vX.Y.Z` chart tags. Tags record a validated release; they are not version
+authority. No mutable `latest` tag is created. After the matching tag exists,
+Release creates an independent published GitHub Release for each released
+authority. The application and chart therefore have separate release histories
+even when both are released by the same push.
 
 ## Required repository configuration
 
