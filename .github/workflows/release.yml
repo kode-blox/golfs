@@ -3,12 +3,12 @@ name: Release
 on:
   workflow_call:
     inputs:
-      application-changed:
-        description: Whether the authoritative application version changed
+      application-release-needed:
+        description: Whether the application version has no immutable release tag
         required: true
         type: boolean
-      chart-changed:
-        description: Whether the authoritative chart version changed
+      chart-release-needed:
+        description: Whether the chart version has no immutable release tag
         required: true
         type: boolean
 
@@ -23,7 +23,6 @@ jobs:
       application_version: ${{ steps.metadata.outputs.application_version }}
       chart_version: ${{ steps.metadata.outputs.chart_version }}
       release_tags: ${{ steps.metadata.outputs.release_tags }}
-      tags_match: ${{ steps.tags.outputs.tags-match }}
     steps:
       - name: Check out release metadata
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,29 +39,20 @@ jobs:
         name: Read validated versions
         shell: bash
         env:
-          APPLICATION_CHANGED: ${{ inputs['application-changed'] }}
-          CHART_CHANGED: ${{ inputs['chart-changed'] }}
+          APPLICATION_RELEASE_NEEDED: ${{ inputs['application-release-needed'] }}
+          CHART_RELEASE_NEEDED: ${{ inputs['chart-release-needed'] }}
         run: |
           set -euo pipefail
           {
             printf 'application_version=%s\n' "$(<VERSION)"
             printf 'chart_version=%s\n' "$(<charts/VERSION)"
             printf 'release_tags<<EOF\n'
-            [[ "$APPLICATION_CHANGED" != true ]] || printf 'v%s\n' "$(<VERSION)"
-            [[ "$CHART_CHANGED" != true ]] || printf 'chart-v%s\n' "$(<charts/VERSION)"
+            [[ "$APPLICATION_RELEASE_NEEDED" != true ]] || printf 'v%s\n' "$(<VERSION)"
+            [[ "$CHART_RELEASE_NEEDED" != true ]] || printf 'chart-v%s\n' "$(<charts/VERSION)"
             printf 'EOF\n'
           } >> "$GITHUB_OUTPUT"
-      - id: tags
-        name: Verify immutable release tags
-        uses: SayakMukhopadhyay/github-actions/release-tags@v1
-        with:
-          token: ${{ github.token }}
-          tags: ${{ steps.metadata.outputs.release_tags }}
-          mode: verify
-
   publish:
-    if: >-
-      needs.metadata.outputs.tags_match != 'true'
+    if: inputs['application-release-needed'] || inputs['chart-release-needed']
     needs:
       - metadata
     runs-on: ubuntu-latest
@@ -73,7 +63,7 @@ jobs:
     steps:
       - id: gitops-token
         name: Create GitOps installation token
-        if: inputs['chart-changed']
+        if: inputs['chart-release-needed']
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: ${{ vars.GITOPS_APP_ID }}
@@ -82,7 +72,7 @@ jobs:
           repositories: k8s-landscape-charts
           permission-contents: write
       - name: Publish application container
-        if: inputs['application-changed']
+        if: inputs['application-release-needed']
         uses: SayakMukhopadhyay/github-actions/container-build-push@v1
         with:
           version: ${{ needs.metadata.outputs.application_version }}
@@ -94,7 +84,7 @@ jobs:
           push: 'true'
       - id: chart
         name: Publish Helm chart
-        if: inputs['chart-changed']
+        if: inputs['chart-release-needed']
         uses: SayakMukhopadhyay/github-actions/helm-package-push@v1
         with:
           app-version: ${{ needs.metadata.outputs.application_version }}
@@ -105,7 +95,7 @@ jobs:
           working-directory: .
           push: 'true'
       - name: Promote chart through GitOps
-        if: inputs['chart-changed']
+        if: inputs['chart-release-needed']
         uses: SayakMukhopadhyay/github-actions/chart-update-deploy@v1
         with:
           token: ${{ steps.gitops-token.outputs.token }}
@@ -121,9 +111,7 @@ jobs:
           password: ${{ github.token }}
 
   tag:
-    if: >-
-      always() && needs.metadata.result == 'success' &&
-      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    if: needs.publish.result == 'success'
     needs:
       - metadata
       - publish
@@ -139,7 +127,7 @@ jobs:
           mode: ensure
 
   application-release:
-    if: inputs['application-changed'] && needs.tag.result == 'success'
+    if: inputs['application-release-needed'] && needs.tag.result == 'success'
     needs:
       - metadata
       - tag
@@ -156,7 +144,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 
   chart-release:
-    if: inputs['chart-changed'] && needs.tag.result == 'success'
+    if: inputs['chart-release-needed'] && needs.tag.result == 'success'
     needs:
       - metadata
       - tag

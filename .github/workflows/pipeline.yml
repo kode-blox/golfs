@@ -18,39 +18,62 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
 
-  release-changes:
+  release-eligibility:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
-      application_changed: ${{ steps.application.outputs.changed }}
-      chart_changed: ${{ steps.chart.outputs.changed }}
+      application_release_needed: ${{ steps.application-tag.outputs.tags-exist == 'false' }}
+      chart_release_needed: ${{ steps.chart-tag.outputs.tags-exist == 'false' }}
     steps:
-      - id: application
-        name: Detect application version change
-        uses: SayakMukhopadhyay/github-actions/is-file-changed@v1
+      - name: Check out version metadata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          pattern: '^VERSION$'
-      - id: chart
-        name: Detect chart version change
-        uses: SayakMukhopadhyay/github-actions/is-file-changed@v1
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate release versions
+        uses: SayakMukhopadhyay/github-actions/check-version@v1
         with:
-          pattern: '^charts/VERSION$'
+          working-directory: .
+          helm: 'true'
+      - id: versions
+        name: Read validated release versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'application_version=%s\n' "$(<VERSION)"
+            printf 'chart_version=%s\n' "$(<charts/VERSION)"
+          } >> "$GITHUB_OUTPUT"
+      - id: application-tag
+        name: Check application release tag
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: v${{ steps.versions.outputs.application_version }}
+          mode: exists
+      - id: chart-tag
+        name: Check chart release tag
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: chart-v${{ steps.versions.outputs.chart_version }}
+          mode: exists
 
   release:
     if: >-
       github.event_name == 'push' &&
-      (needs.release-changes.outputs.application_changed == 'true' ||
-      needs.release-changes.outputs.chart_changed == 'true')
+      (needs.release-eligibility.outputs.application_release_needed == 'true' ||
+      needs.release-eligibility.outputs.chart_release_needed == 'true')
     needs:
       - ci
-      - release-changes
+      - release-eligibility
     permissions:
       contents: write
       packages: write
     uses: ./.github/workflows/release.yml
     with:
-      application-changed: ${{ needs.release-changes.outputs.application_changed == 'true' }}
-      chart-changed: ${{ needs.release-changes.outputs.chart_changed == 'true' }}
+      application-release-needed: ${{ needs.release-eligibility.outputs.application_release_needed == 'true' }}
+      chart-release-needed: ${{ needs.release-eligibility.outputs.chart_release_needed == 'true' }}
     secrets: inherit
