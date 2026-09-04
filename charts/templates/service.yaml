@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "golfs.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "golfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
+  {{- with .Values.publicService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.publicService.type }}
+  ports:
+    - name: http
+      port: {{ .Values.publicService.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "golfs.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "golfs.fullname" . }}-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "golfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.kubernetesComponent }}-metrics
+  {{- with .Values.metricsService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.metricsService.type }}
+  ports:
+    - name: metrics
+      port: {{ .Values.metricsService.port }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "golfs.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.kubernetesComponent }}

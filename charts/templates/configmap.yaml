@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "golfs.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "golfs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
+data:
+  {{- range $name, $value := .Values.environmentsVars }}
+  {{ $name }}: {{ $value | quote }}
+  {{- end }}

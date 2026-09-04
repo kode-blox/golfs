@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "replicaCount",
+    "image",
+    "kubernetesComponent",
+    "environmentsVars",
+    "secret",
+    "externalSecrets",
+    "containerPorts",
+    "publicService",
+    "metricsService"
+  ],
+  "properties": {
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "image": {
+      "type": "object",
+      "required": ["repository", "pullPolicy"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "pullPolicy": {"type": "string", "enum": ["Always", "IfNotPresent", "Never"]},
+        "tag": {"type": "string"}
+      }
+    },
+    "kubernetesComponent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environmentsVars": {
+      "type": "object",
+      "required": [
+        "GOLFS_PUBLIC_URL",
+        "GOLFS_HTTP_ADDR",
+        "GOLFS_ADMIN_ADDR",
+        "GOLFS_GITHUB_APP_CLIENT_ID",
+        "GOLFS_S3_ENDPOINT",
+        "GOLFS_S3_REGION",
+        "GOLFS_S3_BUCKET"
+      ],
+      "properties": {
+        "GOLFS_PUBLIC_URL": {"type": "string", "pattern": "^https://"},
+        "GOLFS_HTTP_ADDR": {"type": "string", "minLength": 1},
+        "GOLFS_ADMIN_ADDR": {"type": "string", "minLength": 1},
+        "GOLFS_GITHUB_APP_CLIENT_ID": {"type": "string", "minLength": 1},
+        "GOLFS_S3_ENDPOINT": {"type": "string", "format": "uri"},
+        "GOLFS_S3_REGION": {"type": "string", "minLength": 1},
+        "GOLFS_S3_BUCKET": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": {
+        "type": ["string", "number", "boolean"]
+      }
+    },
+    "secret": {
+      "type": "object",
+      "required": ["existingSecret"],
+      "properties": {
+        "existingSecret": {"type": "string"}
+      }
+    },
+    "externalSecrets": {
+      "type": "object",
+      "required": ["enabled", "secretStore", "refreshInterval", "targetSecretName", "secrets"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "secretStore": {"type": "string"},
+        "refreshInterval": {"type": "string", "minLength": 2},
+        "targetSecretName": {"type": "string"},
+        "secrets": {"type": "array"}
+      }
+    },
+    "containerPorts": {
+      "type": "object",
+      "required": ["http", "metrics"],
+      "properties": {
+        "http": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "metrics": {"type": "integer", "minimum": 1, "maximum": 65535}
+      }
+    },
+    "publicService": {
+      "type": "object",
+      "required": ["type", "port"],
+      "properties": {
+        "type": {"type": "string"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+      }
+    },
+    "metricsService": {
+      "type": "object",
+      "required": ["type", "port"],
+      "properties": {
+        "type": {"type": "string"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+      }
+    },
+    "terminationGracePeriodSeconds": {
+      "type": "integer",
+      "minimum": 10
+    }
+  }
+}
