@@ -44,9 +44,9 @@ jobs:
           CHART_CHANGED: ${{ inputs['chart-changed'] }}
         run: |
           set -euo pipefail
-          printf 'application_version=%s\n' "$(<VERSION)" >> "$GITHUB_OUTPUT"
-          printf 'chart_version=%s\n' "$(<charts/VERSION)" >> "$GITHUB_OUTPUT"
           {
+            printf 'application_version=%s\n' "$(<VERSION)"
+            printf 'chart_version=%s\n' "$(<charts/VERSION)"
             printf 'release_tags<<EOF\n'
             [[ "$APPLICATION_CHANGED" != true ]] || printf 'v%s\n' "$(<VERSION)"
             [[ "$CHART_CHANGED" != true ]] || printf 'chart-v%s\n' "$(<charts/VERSION)"
