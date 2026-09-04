@@ -1,0 +1,56 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  release-changes:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      application_changed: ${{ steps.application.outputs.changed }}
+      chart_changed: ${{ steps.chart.outputs.changed }}
+    steps:
+      - id: application
+        name: Detect application version change
+        uses: SayakMukhopadhyay/github-actions/is-file-changed@v1
+        with:
+          pattern: '^VERSION$'
+      - id: chart
+        name: Detect chart version change
+        uses: SayakMukhopadhyay/github-actions/is-file-changed@v1
+        with:
+          pattern: '^charts/VERSION$'
+
+  release:
+    if: >-
+      github.event_name == 'push' &&
+      (needs.release-changes.outputs.application_changed == 'true' ||
+      needs.release-changes.outputs.chart_changed == 'true')
+    needs:
+      - ci
+      - release-changes
+    permissions:
+      contents: write
+      packages: write
+    uses: ./.github/workflows/release.yml
+    with:
+      application-changed: ${{ needs.release-changes.outputs.application_changed == 'true' }}
+      chart-changed: ${{ needs.release-changes.outputs.chart_changed == 'true' }}
+    secrets: inherit

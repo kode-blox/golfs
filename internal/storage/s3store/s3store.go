@@ -1,0 +1,200 @@
+// Copyright 2026 Sayak Mukhopadhyay
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package s3store implements immutable S3-backed object storage.
+package s3store
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
+	"github.com/kode-blox/golfs/internal/observability"
+	"github.com/kode-blox/golfs/internal/storage"
+)
+
+// Config supplies the S3 endpoint, bucket, signing behavior, and metrics.
+type Config struct {
+	Endpoint     string
+	Region       string
+	Bucket       string
+	UsePathStyle bool
+	PresignTTL   time.Duration
+	Metrics      *observability.Metrics
+}
+
+// Store implements immutable direct-transfer storage with AWS SDK for Go v2.
+type Store struct {
+	bucket    string
+	ttl       time.Duration
+	client    *s3.Client
+	presigner *s3.PresignClient
+	metrics   *observability.Metrics
+}
+
+// New loads the standard AWS credential chain and constructs an S3 store.
+func New(ctx context.Context, cfg Config) (*Store, error) {
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(cfg.Region))
+	if err != nil {
+		return nil, fmt.Errorf("load AWS configuration: %w", err)
+	}
+	client := s3.NewFromConfig(awsCfg, func(options *s3.Options) {
+		options.BaseEndpoint = aws.String(cfg.Endpoint)
+		options.UsePathStyle = cfg.UsePathStyle
+	})
+	return newWithClient(client, cfg), nil
+}
+
+func newWithClient(client *s3.Client, cfg Config) *Store {
+	return &Store{
+		bucket: cfg.Bucket, ttl: cfg.PresignTTL, client: client,
+		presigner: s3.NewPresignClient(client), metrics: cfg.Metrics,
+	}
+}
+
+// Validate checks that the configured bucket is reachable during startup.
+func (s *Store) Validate(ctx context.Context) error {
+	started := time.Now()
+	_, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(s.bucket)})
+	s.observe("head_bucket", result(err), started)
+	if err != nil {
+		return fmt.Errorf("check S3 bucket access: %w", mapError(err))
+	}
+	return nil
+}
+
+// Head returns size and SHA-256 metadata with checksum retrieval enabled.
+func (s *Store) Head(ctx context.Context, repositoryID int64, oid string) (storage.Object, error) {
+	started := time.Now()
+	output, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(Key(repositoryID, oid)),
+		ChecksumMode: types.ChecksumModeEnabled,
+	})
+	s.observe("head_object", result(err), started)
+	if err != nil {
+		return storage.Object{}, mapError(err)
+	}
+	checksum := ""
+	if output.ChecksumSHA256 != nil {
+		checksum = aws.ToString(output.ChecksumSHA256)
+	}
+	return storage.Object{Size: aws.ToInt64(output.ContentLength), ChecksumSHA256: checksum}, nil
+}
+
+// PresignUpload creates a conditional, checksum-bound, single-part PUT action.
+func (s *Store) PresignUpload(ctx context.Context, repositoryID int64, oid string, size int64) (storage.Action, error) {
+	checksum, err := checksumBase64(oid)
+	if err != nil {
+		return storage.Action{}, err
+	}
+	started := time.Now()
+	request, err := s.presigner.PresignPutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(Key(repositoryID, oid)),
+		ContentLength: aws.Int64(size), ChecksumSHA256: aws.String(checksum),
+		IfNoneMatch: aws.String("*"),
+	}, func(options *s3.PresignOptions) { options.Expires = s.ttl })
+	s.observe("presign_put_object", result(err), started)
+	if err != nil {
+		return storage.Action{}, fmt.Errorf("presign S3 upload: %w", storage.ErrUnavailable)
+	}
+	return actionFromRequest(request.URL, request.SignedHeader, s.ttl), nil
+}
+
+// PresignDownload creates a direct GET action for a previously validated object.
+func (s *Store) PresignDownload(ctx context.Context, repositoryID int64, oid string) (storage.Action, error) {
+	started := time.Now()
+	request, err := s.presigner.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(Key(repositoryID, oid)),
+	}, func(options *s3.PresignOptions) { options.Expires = s.ttl })
+	s.observe("presign_get_object", result(err), started)
+	if err != nil {
+		return storage.Action{}, fmt.Errorf("presign S3 download: %w", storage.ErrUnavailable)
+	}
+	return actionFromRequest(request.URL, request.SignedHeader, s.ttl), nil
+}
+
+// Key returns the repository-scoped full-OID object key.
+func Key(repositoryID int64, oid string) string {
+	return "github/" + strconv.FormatInt(repositoryID, 10) + "/objects/" + oid
+}
+
+func checksumBase64(oid string) (string, error) {
+	digest, err := hex.DecodeString(oid)
+	if err != nil || len(digest) != 32 {
+		return "", errors.New("invalid SHA-256 OID")
+	}
+	return base64.StdEncoding.EncodeToString(digest), nil
+}
+
+func actionFromRequest(href string, signed http.Header, ttl time.Duration) storage.Action {
+	headers := make(map[string]string, len(signed))
+	for name, values := range signed {
+		if len(values) > 0 && !strings.EqualFold(name, "host") {
+			headers[name] = values[0]
+		}
+	}
+	return storage.Action{Href: href, Header: headers, ExpiresIn: int64(ttl.Seconds())}
+}
+
+func mapError(err error) error {
+	var responseError *smithyhttp.ResponseError
+	if errors.As(err, &responseError) {
+		switch responseError.HTTPStatusCode() {
+		case http.StatusNotFound:
+			return storage.ErrNotFound
+		case http.StatusTooManyRequests, http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			return storage.ErrUnavailable
+		}
+	}
+	var apiError smithy.APIError
+	if errors.As(err, &apiError) {
+		switch apiError.ErrorCode() {
+		case "NotFound", "NoSuchKey", "NoSuchBucket":
+			return storage.ErrNotFound
+		case "SlowDown", "RequestTimeout", "ServiceUnavailable", "InternalError":
+			return storage.ErrUnavailable
+		}
+	}
+	return storage.ErrUnavailable
+}
+
+func result(err error) string {
+	if err == nil {
+		return "success"
+	}
+	if errors.Is(mapError(err), storage.ErrNotFound) {
+		return "not_found"
+	}
+	return "error"
+}
+
+func (s *Store) observe(operation, status string, started time.Time) {
+	if s.metrics == nil {
+		return
+	}
+	s.metrics.S3Requests.WithLabelValues(operation, status).Inc()
+	s.metrics.S3Duration.WithLabelValues(operation).Observe(time.Since(started).Seconds())
+}

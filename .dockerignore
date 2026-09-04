@@ -1,0 +1,7 @@
+# Deny by default. Only inputs required by the Go build are admitted.
+**
+!go.*
+!VERSION
+!.git
+!cmd
+!internal

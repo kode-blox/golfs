@@ -1,0 +1,62 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Version authorities to increment
+        required: true
+        default: app-and-chart
+        type: choice
+        options:
+          - app-and-chart
+          - chart-only
+      increment:
+        description: Semantic version component to increment
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bump-version-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - id: application-token
+        name: Create application repository installation token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.GITOPS_APP_ID }}
+          private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: golfs
+          permission-contents: write
+      - name: Bump application and chart versions
+        if: inputs.target == 'app-and-chart'
+        uses: SayakMukhopadhyay/github-actions/bump-version@v1
+        with:
+          token: ${{ steps.application-token.outputs.token }}
+          increment: ${{ inputs.increment }}
+          working-directory: .
+          go: 'true'
+          helm: 'true'
+      - name: Bump chart version
+        if: inputs.target == 'chart-only'
+        uses: SayakMukhopadhyay/github-actions/bump-version@v1
+        with:
+          token: ${{ steps.application-token.outputs.token }}
+          increment: ${{ inputs.increment }}
+          working-directory: .
+          go: 'false'
+          helm: 'true'

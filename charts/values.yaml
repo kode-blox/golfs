@@ -1,0 +1,144 @@
+# Default values for GOLFS.
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/kode-blox/golfs
+  pullPolicy: IfNotPresent
+  tag: ""
+
+kubernetesComponent: server
+
+# Non-secret GOLFS configuration rendered into the chart-managed ConfigMap.
+environmentsVars:
+  GOLFS_PUBLIC_URL: https://lfs.example.com
+  GOLFS_HTTP_ADDR: ":8080"
+  GOLFS_ADMIN_ADDR: ":9090"
+  GOLFS_GITHUB_APP_CLIENT_ID: Iv1_replace_me
+  GOLFS_S3_ENDPOINT: https://s3.example.com
+  GOLFS_S3_REGION: us-east-1
+  GOLFS_S3_BUCKET: golfs
+  GOLFS_S3_USE_PATH_STYLE: "false"
+  GOLFS_PRESIGN_TTL: 1h
+  GOLFS_MAX_OBJECT_SIZE: "5000000000"
+  GOLFS_LOG_LEVEL: info
+  GOLFS_DEV_ALLOW_HTTP: "false"
+
+# Optional additional ConfigMap merged after the chart-managed ConfigMap.
+extraEnvVarsConfigMap: ""
+
+# Existing Secret containing GOLFS_GITHUB_APP_PRIVATE_KEY_PEM and AWS
+# credentials. Ignored when externalSecrets.enabled is true.
+secret:
+  existingSecret: golfs
+
+externalSecrets:
+  enabled: false
+  secretStore: ""
+  refreshInterval: 1h
+  targetSecretName: ""
+  secrets: []
+  # - secretKey: GOLFS_GITHUB_APP_PRIVATE_KEY_PEM
+  #   remoteRef:
+  #     key: golfs/github-app-private-key
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  automount: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+containerPorts:
+  http: 8080
+  metrics: 9090
+
+publicService:
+  type: ClusterIP
+  port: 8080
+  annotations: {}
+
+metricsService:
+  type: ClusterIP
+  port: 9090
+  annotations: {}
+
+gateway:
+  enabled: false
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: acme-issuer
+  port: 443
+  hosts:
+    - host: lfs.example.com
+      tlsSecretName: lfs-example-com-tls
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: metrics
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: metrics
+  initialDelaySeconds: 2
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+terminationGracePeriodSeconds: 10
+
+volumes: []
+volumeMounts: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+namespace:
+  create: false
+
+serviceMonitor:
+  enabled: false
+  labels: {}
+  interval: 30s
+  scrapeTimeout: 10s

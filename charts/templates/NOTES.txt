@@ -1,0 +1,14 @@
+GOLFS has been installed in namespace {{ .Release.Namespace }}.
+
+The public Git LFS API is available through Service:
+  {{ include "golfs.fullname" . }}:{{ .Values.publicService.port }}
+
+The health, readiness, and metrics endpoints are cluster-internal through:
+  {{ include "golfs.fullname" . }}-metrics:{{ .Values.metricsService.port }}
+
+{{- if .Values.gateway.enabled }}
+Configured public hosts:
+{{- range .Values.gateway.hosts }}
+  https://{{ .host }}
+{{- end }}
+{{- end }}

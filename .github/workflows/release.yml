@@ -1,0 +1,173 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      application-changed:
+        description: Whether the authoritative application version changed
+        required: true
+        type: boolean
+      chart-changed:
+        description: Whether the authoritative chart version changed
+        required: true
+        type: boolean
+
+permissions: {}
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      application_version: ${{ steps.metadata.outputs.application_version }}
+      chart_version: ${{ steps.metadata.outputs.chart_version }}
+      release_tags: ${{ steps.metadata.outputs.release_tags }}
+      tags_match: ${{ steps.tags.outputs.tags-match }}
+    steps:
+      - name: Check out release metadata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+      - name: Validate version metadata
+        uses: SayakMukhopadhyay/github-actions/check-version@v1
+        with:
+          working-directory: .
+          helm: 'true'
+      - id: metadata
+        name: Read validated versions
+        shell: bash
+        env:
+          APPLICATION_CHANGED: ${{ inputs['application-changed'] }}
+          CHART_CHANGED: ${{ inputs['chart-changed'] }}
+        run: |
+          set -euo pipefail
+          printf 'application_version=%s\n' "$(<VERSION)" >> "$GITHUB_OUTPUT"
+          printf 'chart_version=%s\n' "$(<charts/VERSION)" >> "$GITHUB_OUTPUT"
+          {
+            printf 'release_tags<<EOF\n'
+            [[ "$APPLICATION_CHANGED" != true ]] || printf 'v%s\n' "$(<VERSION)"
+            [[ "$CHART_CHANGED" != true ]] || printf 'chart-v%s\n' "$(<charts/VERSION)"
+            printf 'EOF\n'
+          } >> "$GITHUB_OUTPUT"
+      - id: tags
+        name: Verify immutable release tags
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: ${{ steps.metadata.outputs.release_tags }}
+          mode: verify
+
+  publish:
+    if: >-
+      needs.metadata.outputs.tags_match != 'true'
+    needs:
+      - metadata
+    runs-on: ubuntu-latest
+    environment: production-release-gates
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - id: gitops-token
+        name: Create GitOps installation token
+        if: inputs['chart-changed']
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.GITOPS_APP_ID }}
+          private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
+          owner: SayakMukhopadhyay
+          repositories: k8s-landscape-charts
+          permission-contents: write
+      - name: Publish application container
+        if: inputs['application-changed']
+        uses: SayakMukhopadhyay/github-actions/container-build-push@v1
+        with:
+          version: ${{ needs.metadata.outputs.application_version }}
+          registry: ghcr.io
+          image-repository: ${{ github.repository }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+          working-directory: .
+          push: 'true'
+      - id: chart
+        name: Publish Helm chart
+        if: inputs['chart-changed']
+        uses: SayakMukhopadhyay/github-actions/helm-package-push@v1
+        with:
+          app-version: ${{ needs.metadata.outputs.application_version }}
+          registry: ghcr.io
+          repository: ${{ github.repository_owner }}/charts
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+          working-directory: .
+          push: 'true'
+      - name: Promote chart through GitOps
+        if: inputs['chart-changed']
+        uses: SayakMukhopadhyay/github-actions/chart-update-deploy@v1
+        with:
+          token: ${{ steps.gitops-token.outputs.token }}
+          environment: ${{ vars.GITOPS_ENVIRONMENT }}
+          chart-name: ${{ steps.chart.outputs.chart-name }}
+          chart-version: ${{ steps.chart.outputs.chart-version }}
+          dependency: golfs
+          target-repository: SayakMukhopadhyay/k8s-landscape-charts
+          target-ref: main
+          wrapper-chart-path: ${{ vars.GITOPS_WRAPPER_CHART_PATH }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+  tag:
+    if: >-
+      always() && needs.metadata.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    needs:
+      - metadata
+      - publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create immutable release tags
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: ${{ needs.metadata.outputs.release_tags }}
+          mode: ensure
+
+  application-release:
+    if: inputs['application-changed'] && needs.tag.result == 'success'
+    needs:
+      - metadata
+      - tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create application GitHub Release
+        uses: SayakMukhopadhyay/github-actions/create-release@v1
+        with:
+          token: ${{ github.token }}
+          tag-name: v${{ needs.metadata.outputs.application_version }}
+          release-name: GOLFS v${{ needs.metadata.outputs.application_version }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+
+  chart-release:
+    if: inputs['chart-changed'] && needs.tag.result == 'success'
+    needs:
+      - metadata
+      - tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create chart GitHub Release
+        uses: SayakMukhopadhyay/github-actions/create-release@v1
+        with:
+          token: ${{ github.token }}
+          tag-name: chart-v${{ needs.metadata.outputs.chart_version }}
+          release-name: GOLFS chart v${{ needs.metadata.outputs.chart_version }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
