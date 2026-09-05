@@ -43,6 +43,8 @@ for both `kode-blox/golfs` and
 - Repository or `production` secret `OPENAI_API_KEY`, used only
   by `create-release` to write the descriptive portion of GitHub Release notes.
 - GitHub Environment `production` with required reviewers.
+- Environment variable `URL` containing the deployed GOLFS URL, shown on the
+  production deployment record.
 
 The wrapper chart and matching ApplicationSet must exist before the first push
 to `main`. The wrapper must contain exactly one dependency named `golfs` and
