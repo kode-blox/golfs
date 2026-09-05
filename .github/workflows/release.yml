@@ -143,6 +143,9 @@ jobs:
           tag-name: v${{ needs.metadata.outputs.application_version }}
           release-name: GOLFS v${{ needs.metadata.outputs.application_version }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          pathspecs: |
+            :(top,glob)**
+            :(top,glob,exclude)charts/**
 
   chart-release:
     if: inputs['chart-release-needed'] && needs.tag.result == 'success'
@@ -163,3 +166,5 @@ jobs:
           tag-name: chart-v${{ needs.metadata.outputs.chart_version }}
           release-name: GOLFS chart v${{ needs.metadata.outputs.chart_version }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          pathspecs: |
+            :(top,glob)charts/**
