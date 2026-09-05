@@ -40,9 +40,9 @@ for both `kode-blox/golfs` and
   in the GitOps commit message.
 - Repository variable `GITOPS_WRAPPER_CHART_PATH` containing the path to the
   environment-specific wrapper chart in `k8s-landscape-charts`.
-- Repository or `production-release-gates` secret `OPENAI_API_KEY`, used only
+- Repository or `production` secret `OPENAI_API_KEY`, used only
   by `create-release` to write the descriptive portion of GitHub Release notes.
-- GitHub Environment `production-release-gates` with required reviewers.
+- GitHub Environment `production` with required reviewers.
 
 The wrapper chart and matching ApplicationSet must exist before the first push
 to `main`. The wrapper must contain exactly one dependency named `golfs` and

@@ -56,7 +56,7 @@ jobs:
     needs:
       - metadata
     runs-on: ubuntu-latest
-    environment: production-release-gates
+    environment: production
     permissions:
       contents: read
       packages: write
