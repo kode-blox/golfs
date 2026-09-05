@@ -56,7 +56,9 @@ jobs:
     needs:
       - metadata
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      url: ${{ vars.URL }}
     permissions:
       contents: read
       packages: write
