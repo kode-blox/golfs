@@ -38,9 +38,12 @@ for both `kode-blox/golfs` and
 - Repository secret `GITOPS_APP_PRIVATE_KEY` containing the App private key.
 - Environment variable `GITOPS_ENVIRONMENT` containing the GitOps deployment
   name, such as `production`.
-- Repository or `production` secret `OPENAI_API_KEY`, used only
-  by `create-release` to write the descriptive portion of GitHub Release notes.
-- GitHub Environment `production` with required reviewers.
+- Environment secret `OPENAI_API_KEY`, used only by `create-release` to write
+  the descriptive portion of GitHub Release notes. The publication and both
+  GitHub Release jobs target this Environment so the secret is available to
+  each of them.
+- GitHub Environment `production`. Configure required reviewers only if you
+  want an approval gate before those jobs begin.
 - Environment variable `URL` containing the deployed GOLFS URL, shown on the
   production deployment record.
 
