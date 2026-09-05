@@ -36,10 +36,8 @@ for both `kode-blox/golfs` and
 
 - Repository variable `GITOPS_APP_ID` containing the App ID.
 - Repository secret `GITOPS_APP_PRIVATE_KEY` containing the App private key.
-- Repository variable `GITOPS_ENVIRONMENT` containing the deployment name used
-  in the GitOps commit message.
-- Repository variable `GITOPS_WRAPPER_CHART_PATH` containing the path to the
-  environment-specific wrapper chart in `k8s-landscape-charts`.
+- Environment variable `GITOPS_ENVIRONMENT` containing the GitOps deployment
+  name, such as `production`.
 - Repository or `production` secret `OPENAI_API_KEY`, used only
   by `create-release` to write the descriptive portion of GitHub Release notes.
 - GitHub Environment `production` with required reviewers.
@@ -47,10 +45,14 @@ for both `kode-blox/golfs` and
   production deployment record.
 
 The wrapper chart and matching ApplicationSet must exist before the first push
-to `main`. The wrapper must contain exactly one dependency named `golfs` and
-commit its `Chart.lock` and vendored dependency archive. The Release workflow
-updates only that dependency; it does not modify appsets, bootstrap manifests,
-or the live cluster directly.
+to `main`. Following the personal GitOps convention, the production wrapper is
+`golfs/envs/production` in `SayakMukhopadhyay/k8s-landscape-charts`; the
+reusable action defaults the target repository to that repository, the target
+branch to `main`, the dependency to the chart name, and the wrapper location to
+`<chart-name>/envs/<environment>`. The wrapper must contain exactly one
+dependency named `golfs` and commit its `Chart.lock` and vendored dependency
+archive. The Release workflow updates only that dependency; it does not modify
+appsets, bootstrap manifests, or the live cluster directly.
 
 A fine-grained PAT restricted to the target repositories and `contents: write`
 is an emergency fallback only. The checked-in workflows are configured for the
