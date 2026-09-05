@@ -104,10 +104,6 @@ jobs:
           environment: ${{ vars.GITOPS_ENVIRONMENT }}
           chart-name: ${{ steps.chart.outputs.chart-name }}
           chart-version: ${{ steps.chart.outputs.chart-version }}
-          dependency: golfs
-          target-repository: SayakMukhopadhyay/k8s-landscape-charts
-          target-ref: main
-          wrapper-chart-path: ${{ vars.GITOPS_WRAPPER_CHART_PATH }}
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
