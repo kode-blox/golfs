@@ -251,7 +251,7 @@ func newHandlerTestServer(t *testing.T, store storage.ObjectStore) (*http.ServeM
 
 func performLFSRequest(t *testing.T, handler http.Handler, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
-	request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	request := httptest.NewRequestWithContext(context.Background(), http.MethodPost, path, strings.NewReader(body))
 	request.Header.Set("Accept", MediaType)
 	request.Header.Set("Content-Type", MediaType)
 	request.SetBasicAuth("git", "ghu_test")
