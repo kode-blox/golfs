@@ -26,10 +26,9 @@ var (
 	ErrUnavailable = errors.New("storage: unavailable")
 )
 
-// Object contains integrity metadata returned by the provider.
+// Object contains metadata returned by the provider for an accepted object.
 type Object struct {
-	Size           int64
-	ChecksumSHA256 string
+	Size int64
 }
 
 // Action is a presigned direct-transfer request returned to a Git LFS client.

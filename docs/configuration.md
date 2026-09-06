@@ -9,7 +9,7 @@ GOLFS reads configuration from environment variables and fails startup before re
 | `GOLFS_PUBLIC_URL` | HTTPS origin clients use to reach GOLFS, without a path |
 | `GOLFS_GITHUB_APP_CLIENT_ID` | GitHub App client ID, not numeric App ID |
 | `GOLFS_GITHUB_APP_PRIVATE_KEY_PEM` | RSA private key PEM for App JWTs |
-| `GOLFS_S3_ENDPOINT` | Absolute S3 API endpoint |
+| `GOLFS_S3_ENDPOINT` | Absolute Hetzner Object Storage S3 API endpoint |
 | `GOLFS_S3_REGION` | Signing region |
 | `GOLFS_S3_BUCKET` | Existing private bucket |
 | `AWS_ACCESS_KEY_ID` | S3 access key |
@@ -23,7 +23,7 @@ GOLFS reads configuration from environment variables and fails startup before re
 |---|---:|---|
 | `GOLFS_HTTP_ADDR` | `:8080` | Must differ from operations address |
 | `GOLFS_ADMIN_ADDR` | `:9090` | Must differ from public address |
-| `GOLFS_S3_USE_PATH_STYLE` | `false` | Set only when the provider requires it |
+| `GOLFS_S3_USE_PATH_STYLE` | `false` | Set only when the Hetzner endpoint requires it |
 | `GOLFS_PRESIGN_TTL` | `1h` | Greater than zero, at most 168 hours |
 | `GOLFS_MAX_OBJECT_SIZE` | `5000000000` | Positive and configurable only downward |
 | `GOLFS_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error` |

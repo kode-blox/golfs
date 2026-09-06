@@ -1,6 +1,6 @@
 # GOLFS
 
-GOLFS is a stateless Git LFS server for GitHub.com repositories and private S3-compatible object storage. It authenticates GitHub App users, authorizes repository access, implements the Git LFS Batch and Verify APIs, and returns direct presigned S3 actions. Object bytes never pass through GOLFS.
+GOLFS is a stateless Git LFS server for GitHub.com repositories backed by private Hetzner Object Storage through its S3-compatible API. It authenticates GitHub App users, authorizes repository access, implements the Git LFS Batch and Verify APIs, and returns direct presigned S3 actions. Object bytes never pass through GOLFS.
 
 GOLFS v0.1 supports the Git LFS Basic Transfer protocol with SHA-256 objects up to 5,000,000,000 bytes. It deliberately excludes a database, multipart uploads, locking, garbage collection, object deletion, administration commands, and automatic fork provisioning.
 
@@ -8,14 +8,14 @@ GOLFS v0.1 supports the Git LFS Basic Transfer protocol with SHA-256 objects up 
 
 1. A Git LFS client sends Basic credentials to the repository-specific Batch endpoint. The password is a GitHub App user access token.
 2. GOLFS proves that the configured App is installed on the repository, that the user token can access that installation, and that the user has the needed repository permission.
-3. GOLFS resolves GitHub's canonical numeric repository ID and checks S3 object metadata.
+3. GOLFS resolves GitHub's canonical numeric repository ID and checks whether the expected S3 object exists with the requested size.
 4. GOLFS returns a presigned S3 PUT or GET action. Uploads also receive a GOLFS Verify action.
-5. S3 enforces the SHA-256 checksum, content length, and conditional object creation. GOLFS independently validates stored metadata during Verify and every download Batch.
+5. Hetzner enforces the signed SHA-256 payload hash and conditional object creation during upload. GOLFS confirms object existence and size during Verify and every download Batch.
 
 Object keys have the stable form:
 
 ```text
-github/{numeric-repository-id}/objects/{full-sha256-oid}
+github/{numeric-repository-id}/objects/{first-two-oid-characters}/{next-two-oid-characters}/{full-sha256-oid}
 ```
 
 ## API
@@ -52,11 +52,10 @@ No GitHub App client secret is distributed.
 Go 1.27.0 is required:
 
 ```shell
+go test ./...
 go vet ./...
 go build ./cmd/golfs
 ```
-
-Automated tests and provider-integration tooling are intentionally deferred during the initial implementation phase.
 
 ## Deployment
 
