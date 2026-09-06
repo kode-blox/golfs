@@ -8,7 +8,7 @@ Metrics use low-cardinality labels for route, status, operation, and outcome. Th
 
 ## Retention and backup
 
-Objects are immutable and retained indefinitely. Do not configure bucket lifecycle deletion. Back up the entire bucket with versioning or provider replication appropriate to your recovery objectives. Restoring an object at the same repository-ID key restores GOLFS visibility after metadata validation.
+Objects are immutable through GOLFS and retained indefinitely. Do not configure bucket lifecycle deletion. Back up the entire bucket using provider replication appropriate to your recovery objectives. Before restoring an object at its exact repository-ID and shard key, independently confirm that its bytes hash to its full OID; GOLFS subsequently checks existence and size without re-reading the body.
 
 The GitHub App private key and S3 credentials must be backed up through the platform's Secret-management process, not alongside object data.
 
@@ -25,7 +25,11 @@ The GitHub App private key and S3 credentials must be backed up through the plat
 
 Top-level errors include `X-Request-ID` and a matching JSON `request_id`. Use this ID to correlate sanitized application logs. Per-object Batch errors deliberately do not fail successful objects in the same Batch.
 
-An existing key with mismatched size or checksum is an integrity incident. GOLFS will not overwrite it. Inspect and repair or remove the exact key directly in S3 under an approved operator procedure, then retry the Batch. GOLFS has no deletion API or administrative command.
+An existing key with a different size is an integrity incident. GOLFS will not overwrite it. Inspect and repair or remove the exact key directly in S3 under an approved operator procedure, then retry the Batch. GOLFS has no deletion API or administrative command.
+
+## Storage-layout cutover
+
+Object keys use `github/{repository-id}/objects/{first-two}/{next-two}/{full-oid}`. Flat keys created by the earlier implementation are not read. Before deploying this layout against an existing bucket, stop uploads and either empty the bucket or perform a separately validated out-of-band migration. Do not mix legacy flat objects with objects accepted through the signed-payload contract.
 
 ## Graceful shutdown
 

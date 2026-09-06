@@ -18,7 +18,6 @@ package lfs
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -253,7 +252,7 @@ func (h *Handler) processObject(ctx context.Context, operation string, repositor
 			return h.objectFailure(response, operation, http.StatusServiceUnavailable, "object storage is temporarily unavailable", "unavailable")
 		}
 		if !matches(stored, input) {
-			return h.objectFailure(response, operation, http.StatusUnprocessableEntity, "stored object failed integrity validation", "mismatch")
+			return h.objectFailure(response, operation, http.StatusUnprocessableEntity, "stored object size does not match requested size", "mismatch")
 		}
 		download, err := h.store.PresignDownload(ctx, repositoryID, input.OID)
 		if err != nil {
@@ -269,7 +268,7 @@ func (h *Handler) processObject(ctx context.Context, operation string, repositor
 			h.observeObject(operation, "exists")
 			return response
 		}
-		return h.objectFailure(response, operation, http.StatusUnprocessableEntity, "an object with this OID has mismatched storage metadata", "mismatch")
+		return h.objectFailure(response, operation, http.StatusUnprocessableEntity, "an object with this OID has a different stored size", "mismatch")
 	}
 	if !errors.Is(err, storage.ErrNotFound) {
 		return h.objectFailure(response, operation, http.StatusServiceUnavailable, "object storage is temporarily unavailable", "unavailable")
@@ -302,12 +301,7 @@ func (h *Handler) observeObject(operation, result string) {
 }
 
 func matches(stored storage.Object, requested requestObject) bool {
-	return stored.Size == requested.Size && stored.ChecksumSHA256 == oidChecksum(requested.OID)
-}
-
-func oidChecksum(oid string) string {
-	digest, _ := hex.DecodeString(oid)
-	return base64.StdEncoding.EncodeToString(digest)
+	return stored.Size == requested.Size
 }
 
 func fromStorageAction(value storage.Action, authenticated bool) action {
@@ -362,7 +356,7 @@ func (h *Handler) verify(w http.ResponseWriter, r *http.Request) {
 	}
 	if !matches(stored, input) {
 		h.observeVerify("mismatch")
-		h.writeError(w, requestID, http.StatusUnprocessableEntity, "uploaded object failed size or SHA-256 verification")
+		h.writeError(w, requestID, http.StatusUnprocessableEntity, "uploaded object size does not match requested size")
 		return
 	}
 	h.observeVerify("success")

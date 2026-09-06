@@ -17,7 +17,6 @@ package s3store
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -27,10 +26,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
+	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/kode-blox/golfs/internal/observability"
 	"github.com/kode-blox/golfs/internal/storage"
@@ -86,36 +86,40 @@ func (s *Store) Validate(ctx context.Context) error {
 	return nil
 }
 
-// Head returns size and SHA-256 metadata with checksum retrieval enabled.
+// Head returns the size of an object accepted by the storage provider.
 func (s *Store) Head(ctx context.Context, repositoryID int64, oid string) (storage.Object, error) {
+	key, err := Key(repositoryID, oid)
+	if err != nil {
+		return storage.Object{}, err
+	}
 	started := time.Now()
 	output, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
-		Bucket: aws.String(s.bucket), Key: aws.String(Key(repositoryID, oid)),
-		ChecksumMode: types.ChecksumModeEnabled,
+		Bucket: aws.String(s.bucket), Key: aws.String(key),
 	})
 	s.observe("head_object", result(err), started)
 	if err != nil {
 		return storage.Object{}, mapError(err)
 	}
-	checksum := ""
-	if output.ChecksumSHA256 != nil {
-		checksum = aws.ToString(output.ChecksumSHA256)
-	}
-	return storage.Object{Size: aws.ToInt64(output.ContentLength), ChecksumSHA256: checksum}, nil
+	return storage.Object{Size: aws.ToInt64(output.ContentLength)}, nil
 }
 
-// PresignUpload creates a conditional, checksum-bound, single-part PUT action.
+// PresignUpload creates a conditional, payload-hash-bound, single-part PUT action.
 func (s *Store) PresignUpload(ctx context.Context, repositoryID int64, oid string, size int64) (storage.Action, error) {
-	checksum, err := checksumBase64(oid)
+	key, err := Key(repositoryID, oid)
 	if err != nil {
 		return storage.Action{}, err
 	}
 	started := time.Now()
 	request, err := s.presigner.PresignPutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(s.bucket), Key: aws.String(Key(repositoryID, oid)),
-		ContentLength: aws.Int64(size), ChecksumSHA256: aws.String(checksum),
-		IfNoneMatch: aws.String("*"),
-	}, func(options *s3.PresignOptions) { options.Expires = s.ttl })
+		Bucket: aws.String(s.bucket), Key: aws.String(key),
+		ContentLength: aws.Int64(size),
+		IfNoneMatch:   aws.String("*"),
+	}, func(options *s3.PresignOptions) {
+		options.Expires = s.ttl
+		options.ClientOptions = append(options.ClientOptions, func(clientOptions *s3.Options) {
+			clientOptions.APIOptions = append(clientOptions.APIOptions, bindPayloadHash(oid))
+		})
+	})
 	s.observe("presign_put_object", result(err), started)
 	if err != nil {
 		return storage.Action{}, fmt.Errorf("presign S3 upload: %w", storage.ErrUnavailable)
@@ -125,9 +129,13 @@ func (s *Store) PresignUpload(ctx context.Context, repositoryID int64, oid strin
 
 // PresignDownload creates a direct GET action for a previously validated object.
 func (s *Store) PresignDownload(ctx context.Context, repositoryID int64, oid string) (storage.Action, error) {
+	key, err := Key(repositoryID, oid)
+	if err != nil {
+		return storage.Action{}, err
+	}
 	started := time.Now()
 	request, err := s.presigner.PresignGetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(s.bucket), Key: aws.String(Key(repositoryID, oid)),
+		Bucket: aws.String(s.bucket), Key: aws.String(key),
 	}, func(options *s3.PresignOptions) { options.Expires = s.ttl })
 	s.observe("presign_get_object", result(err), started)
 	if err != nil {
@@ -136,17 +144,43 @@ func (s *Store) PresignDownload(ctx context.Context, repositoryID int64, oid str
 	return actionFromRequest(request.URL, request.SignedHeader, s.ttl), nil
 }
 
-// Key returns the repository-scoped full-OID object key.
-func Key(repositoryID int64, oid string) string {
-	return "github/" + strconv.FormatInt(repositoryID, 10) + "/objects/" + oid
-}
-
-func checksumBase64(oid string) (string, error) {
-	digest, err := hex.DecodeString(oid)
-	if err != nil || len(digest) != 32 {
+// Key returns the repository-scoped, Git LFS-style sharded object key.
+func Key(repositoryID int64, oid string) (string, error) {
+	if len(oid) != 64 || oid != strings.ToLower(oid) {
 		return "", errors.New("invalid SHA-256 OID")
 	}
-	return base64.StdEncoding.EncodeToString(digest), nil
+	if digest, err := hex.DecodeString(oid); err != nil || len(digest) != 32 {
+		return "", errors.New("invalid SHA-256 OID")
+	}
+	return "github/" + strconv.FormatInt(repositoryID, 10) + "/objects/" + oid[:2] + "/" + oid[2:4] + "/" + oid, nil
+}
+
+// staticPayloadHash supplies the already validated Git LFS OID to the SDK's
+// standard SigV4 presigner without reading the client-owned request body.
+type staticPayloadHash struct {
+	value string
+}
+
+func (*staticPayloadHash) ID() string { return (&v4.UnsignedPayload{}).ID() }
+
+func (m *staticPayloadHash) HandleFinalize(
+	ctx context.Context,
+	in middleware.FinalizeInput,
+	next middleware.FinalizeHandler,
+) (middleware.FinalizeOutput, middleware.Metadata, error) {
+	return next.HandleFinalize(v4.SetPayloadHash(ctx, m.value), in)
+}
+
+func bindPayloadHash(payloadHash string) func(*middleware.Stack) error {
+	return func(stack *middleware.Stack) error {
+		if _, err := stack.Finalize.Swap((&v4.UnsignedPayload{}).ID(), &staticPayloadHash{value: payloadHash}); err != nil {
+			return fmt.Errorf("replace S3 presign payload hash middleware: %w", err)
+		}
+		if err := v4.AddContentSHA256HeaderMiddleware(stack); err != nil {
+			return fmt.Errorf("add S3 content SHA-256 header middleware: %w", err)
+		}
+		return nil
+	}
 }
 
 func actionFromRequest(href string, signed http.Header, ttl time.Duration) storage.Action {
