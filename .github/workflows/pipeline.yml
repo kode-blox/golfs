@@ -4,7 +4,14 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE*'
+      - '.idea/**'
   pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions: {}
 
@@ -14,11 +21,13 @@ concurrency:
 
 jobs:
   ci:
+    name: CI
     permissions:
       contents: read
     uses: ./.github/workflows/ci.yml
 
   release-eligibility:
+    name: Release Eligibility
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -32,11 +41,13 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+
       - name: Validate release versions
         uses: SayakMukhopadhyay/github-actions/check-version@v1
         with:
           working-directory: .
           helm: 'true'
+
       - id: versions
         name: Read validated release versions
         shell: bash
@@ -46,6 +57,7 @@ jobs:
             printf 'application_version=%s\n' "$(<VERSION)"
             printf 'chart_version=%s\n' "$(<charts/VERSION)"
           } >> "$GITHUB_OUTPUT"
+
       - id: application-tag
         name: Check application release tag
         uses: SayakMukhopadhyay/github-actions/release-tags@v1
@@ -53,6 +65,7 @@ jobs:
           token: ${{ github.token }}
           tags: v${{ steps.versions.outputs.application_version }}
           mode: exists
+
       - id: chart-tag
         name: Check chart release tag
         uses: SayakMukhopadhyay/github-actions/release-tags@v1
@@ -62,6 +75,7 @@ jobs:
           mode: exists
 
   release:
+    name: Release
     if: >-
       github.event_name == 'push' &&
       (needs.release-eligibility.outputs.application_release_needed == 'true' ||
@@ -76,4 +90,5 @@ jobs:
     with:
       application-release-needed: ${{ needs.release-eligibility.outputs.application_release_needed == 'true' }}
       chart-release-needed: ${{ needs.release-eligibility.outputs.chart_release_needed == 'true' }}
-    secrets: inherit
+    secrets:
+      GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}

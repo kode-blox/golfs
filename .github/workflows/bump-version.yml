@@ -6,32 +6,35 @@ on:
       target:
         description: Version authorities to increment
         required: true
-        default: app-and-chart
         type: choice
+        default: app-and-chart
         options:
           - app-and-chart
           - chart-only
       increment:
         description: Semantic version component to increment
         required: true
-        default: patch
         type: choice
+        default: patch
         options:
           - patch
           - minor
           - major
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
-  group: bump-version-${{ github.ref }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  queue: max
 
 jobs:
-  bump:
+  bump-version:
+    name: Bump version
     if: github.ref_name == 'main'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: {}
+
     steps:
       - id: application-token
         name: Create application repository installation token
@@ -42,6 +45,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: golfs
           permission-contents: write
+
       - name: Bump application and chart versions
         if: inputs.target == 'app-and-chart'
         uses: SayakMukhopadhyay/github-actions/bump-version@v1
@@ -51,6 +55,7 @@ jobs:
           working-directory: .
           go: 'true'
           helm: 'true'
+
       - name: Bump chart version
         if: inputs.target == 'chart-only'
         uses: SayakMukhopadhyay/github-actions/bump-version@v1

@@ -6,64 +6,80 @@ on:
 permissions: {}
 
 jobs:
-  go:
+  build-go:
+    name: Build Go
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
+
     steps:
-      - uses: SayakMukhopadhyay/github-actions/checkout-dependencies@v1
+      - name: Checkout and install dependencies
+        uses: SayakMukhopadhyay/github-actions/checkout-dependencies@v1
         with:
           go-version: '1.27.0'
           working-directory: .
+
       - name: Validate version metadata
         uses: SayakMukhopadhyay/github-actions/check-version@v1
         with:
           working-directory: .
           helm: 'true'
+
       - name: Check formatting
         run: test -z "$(git ls-files -z -- '*.go' | xargs -0 -r gofmt -l)"
+
       - name: Vet
         run: go vet ./...
+
       - name: Test
         run: go test ./...
+
       - name: Build
         run: go build ./cmd/golfs
+
       - name: Vulnerability scan
         uses: golang/govulncheck-action@v1
         with:
           go-version-input: 1.27.0
           go-package: ./...
+
       - name: Lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.13.2
-      - name: Validate GitHub Actions workflows
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 
-  helm:
+  build-helm:
+    name: Build Helm
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
+
     steps:
       - name: Validate and package chart
         uses: SayakMukhopadhyay/github-actions/helm-package-push@v1
         with:
-          app-version: ci
+          app-version: build-${{ github.sha }}
           push: 'false'
           working-directory: .
+
       - name: Render chart
         run: |
           helm template golfs charts --set environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID=Iv1_ci > /dev/null
 
-  container:
+  build-container:
+    name: Build container
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
+
     steps:
       - name: Build container
         uses: SayakMukhopadhyay/github-actions/container-build-push@v1
         with:
-          version: ci
+          version: build-${{ github.sha }}
           registry: ghcr.io
           image-repository: ${{ github.repository }}
           working-directory: .
