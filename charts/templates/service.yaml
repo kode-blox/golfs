@@ -13,10 +13,10 @@ metadata:
 spec:
   type: {{ .Values.publicService.type }}
   ports:
-    - name: http
-      port: {{ .Values.publicService.port }}
+    - port: {{ .Values.publicService.port }}
       targetPort: http
       protocol: TCP
+      name: http
   selector:
     {{- include "golfs.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
@@ -36,10 +36,10 @@ metadata:
 spec:
   type: {{ .Values.metricsService.type }}
   ports:
-    - name: metrics
-      port: {{ .Values.metricsService.port }}
+    - port: {{ .Values.metricsService.port }}
       targetPort: metrics
       protocol: TCP
+      name: metrics
   selector:
     {{- include "golfs.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
