@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
+ARG GO_VERSION=1.27.0
+
 # Builder stage
-FROM golang:1.27.0-trixie AS builder
+FROM golang:${GO_VERSION}-trixie AS builder
 
 WORKDIR /app
 
@@ -9,8 +11,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY VERSION ./
-COPY cmd ./cmd
-COPY internal ./internal
+COPY ./cmd/ ./cmd/
+COPY ./internal/ ./internal/
 
 ARG TARGETOS=linux
 ARG TARGETARCH
@@ -28,10 +30,13 @@ RUN --mount=type=bind,source=.git,target=/app/.git,readonly \
 FROM debian:trixie-slim AS production
 
 LABEL org.opencontainers.image.authors="Sayak Mukhopadhyay" \
+      org.opencontainers.image.url="https://github.com/orgs/kode-blox/packages/container/package/golfs" \
+      org.opencontainers.image.documentation="https://github.com/kode-blox/golfs/blob/main/README.md" \
+      org.opencontainers.image.vendor="kode-blox" \
+      org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.title="GOLFS" \
       org.opencontainers.image.description="Stateless Git LFS server for GitHub.com repositories and private S3-compatible object storage" \
-      org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.url="https://github.com/kode-blox/golfs"
+      org.opencontainers.image.base.name="docker.io/library/debian:trixie-slim"
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
