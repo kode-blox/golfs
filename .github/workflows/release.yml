@@ -11,18 +11,28 @@ on:
         description: Whether the chart version has no immutable release tag
         required: true
         type: boolean
+    secrets:
+      GITOPS_APP_PRIVATE_KEY:
+        description: GitHub App private key used to update the GitOps repository
+        required: false
+      OPENAI_API_KEY:
+        description: OpenAI API key supplied by the production environment
+        required: false
 
 permissions: {}
 
 jobs:
   metadata:
+    name: Prepare release metadata
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     outputs:
       application_version: ${{ steps.metadata.outputs.application_version }}
       chart_version: ${{ steps.metadata.outputs.chart_version }}
       release_tags: ${{ steps.metadata.outputs.release_tags }}
+
     steps:
       - name: Check out release metadata
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,11 +40,13 @@ jobs:
           fetch-depth: 1
           fetch-tags: false
           persist-credentials: false
+
       - name: Validate version metadata
         uses: SayakMukhopadhyay/github-actions/check-version@v1
         with:
           working-directory: .
           helm: 'true'
+
       - id: metadata
         name: Read validated versions
         shell: bash
@@ -51,17 +63,21 @@ jobs:
             [[ "$CHART_RELEASE_NEEDED" != true ]] || printf 'chart-v%s\n' "$(<charts/VERSION)"
             printf 'EOF\n'
           } >> "$GITHUB_OUTPUT"
+
   publish:
+    name: Publish artifacts
     if: inputs['application-release-needed'] || inputs['chart-release-needed']
     needs:
       - metadata
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment:
       name: production
       url: ${{ vars.URL }}
     permissions:
       contents: read
       packages: write
+
     steps:
       - id: gitops-token
         name: Create GitOps installation token
@@ -73,6 +89,7 @@ jobs:
           owner: SayakMukhopadhyay
           repositories: k8s-landscape-charts
           permission-contents: write
+
       - name: Publish application container
         if: inputs['application-release-needed']
         uses: SayakMukhopadhyay/github-actions/container-build-push@v1
@@ -84,6 +101,7 @@ jobs:
           password: ${{ github.token }}
           working-directory: .
           push: 'true'
+
       - id: chart
         name: Publish Helm chart
         if: inputs['chart-release-needed']
@@ -96,6 +114,7 @@ jobs:
           password: ${{ github.token }}
           working-directory: .
           push: 'true'
+
       - name: Promote chart through GitOps
         if: inputs['chart-release-needed']
         uses: SayakMukhopadhyay/github-actions/chart-update-deploy@v1
@@ -109,13 +128,16 @@ jobs:
           password: ${{ github.token }}
 
   tag:
+    name: Create release tags
     if: needs.publish.result == 'success'
     needs:
       - metadata
       - publish
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
+
     steps:
       - name: Create immutable release tags
         uses: SayakMukhopadhyay/github-actions/release-tags@v1
@@ -125,16 +147,19 @@ jobs:
           mode: ensure
 
   application-release:
+    name: Create application release
     if: inputs['application-release-needed'] && needs.tag.result == 'success'
     needs:
       - metadata
       - tag
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: production
       url: ${{ vars.URL }}
     permissions:
       contents: write
+
     steps:
       - name: Create application GitHub Release
         uses: SayakMukhopadhyay/github-actions/create-release@v1
@@ -148,16 +173,19 @@ jobs:
             :(top,glob,exclude)charts/**
 
   chart-release:
+    name: Create chart release
     if: inputs['chart-release-needed'] && needs.tag.result == 'success'
     needs:
       - metadata
       - tag
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: production
       url: ${{ vars.URL }}
     permissions:
       contents: write
+
     steps:
       - name: Create chart GitHub Release
         uses: SayakMukhopadhyay/github-actions/create-release@v1
