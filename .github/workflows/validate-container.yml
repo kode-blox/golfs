@@ -1,0 +1,24 @@
+name: Validate Container
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate container build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Build disposable container
+        uses: SayakMukhopadhyay/github-actions/container-build-push@v1
+        with:
+          version: build-${{ github.sha }}
+          registry: ghcr.io
+          image-repository: ${{ github.repository }}
+          working-directory: .
+          push: 'false'

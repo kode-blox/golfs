@@ -16,7 +16,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -25,6 +25,15 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/ci.yml
+
+  validate-container:
+    name: Validate Container
+    if: github.event_name == 'pull_request'
+    needs:
+      - ci
+    permissions:
+      contents: read
+    uses: ./.github/workflows/validate-container.yml
 
   release-eligibility:
     name: Release Eligibility

@@ -49,6 +49,9 @@ jobs:
         with:
           version: v2.13.2
 
+      - name: Validate GitHub Actions workflows
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+
   build-helm:
     name: Build Helm
     runs-on: ubuntu-latest
@@ -67,20 +70,3 @@ jobs:
       - name: Render chart
         run: |
           helm template golfs charts --set environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID=Iv1_ci > /dev/null
-
-  build-container:
-    name: Build container
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-
-    steps:
-      - name: Build container
-        uses: SayakMukhopadhyay/github-actions/container-build-push@v1
-        with:
-          version: build-${{ github.sha }}
-          registry: ghcr.io
-          image-repository: ${{ github.repository }}
-          working-directory: .
-          push: 'false'
