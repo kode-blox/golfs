@@ -3,22 +3,6 @@
   <component name="JsonSchemaMappingsProjectConfiguration">
     <state>
       <map>
-        <entry key="GitHub Workflow">
-          <value>
-            <SchemaInfo>
-              <option name="name" value="GitHub Workflow" />
-              <option name="relativePathToSchema" value="https://www.schemastore.org/github-workflow.json" />
-              <option name="applicationDefined" value="true" />
-              <option name="patterns">
-                <list>
-                  <Item>
-                    <option name="path" value=".github/workflows/release.yml" />
-                  </Item>
-                </list>
-              </option>
-            </SchemaInfo>
-          </value>
-        </entry>
         <entry key="Golangci-lint Configuration">
           <value>
             <SchemaInfo>

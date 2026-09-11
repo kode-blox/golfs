@@ -7,10 +7,11 @@ on:
         description: Version authorities to increment
         required: true
         type: choice
-        default: app-and-chart
+        default: both
         options:
-          - app-and-chart
-          - chart-only
+          - application
+          - chart
+          - both
       increment:
         description: Semantic version component to increment
         required: true
@@ -45,22 +46,32 @@ jobs:
           repositories: golfs
           permission-contents: write
 
-      - name: Bump application and chart versions
-        if: inputs.target == 'app-and-chart'
+      - name: Bump application version
+        if: inputs.target == 'application'
         uses: SayakMukhopadhyay/github-actions/bump-version@v1
         with:
           token: ${{ steps.application-token.outputs.token }}
           increment: ${{ inputs.increment }}
           working-directory: .
           go: 'true'
-          helm: 'true'
+          helm: 'false'
 
       - name: Bump chart version
-        if: inputs.target == 'chart-only'
+        if: inputs.target == 'chart'
         uses: SayakMukhopadhyay/github-actions/bump-version@v1
         with:
           token: ${{ steps.application-token.outputs.token }}
           increment: ${{ inputs.increment }}
           working-directory: .
           go: 'false'
+          helm: 'true'
+
+      - name: Bump application and chart versions
+        if: inputs.target == 'both'
+        uses: SayakMukhopadhyay/github-actions/bump-version@v1
+        with:
+          token: ${{ steps.application-token.outputs.token }}
+          increment: ${{ inputs.increment }}
+          working-directory: .
+          go: 'true'
           helm: 'true'

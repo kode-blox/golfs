@@ -1,0 +1,75 @@
+name: Release Eligibility
+
+on:
+  workflow_call:
+    outputs:
+      release-needed:
+        description: Whether any production release is pending
+        value: ${{ jobs.release-eligibility.outputs.release-needed }}
+      application-release-needed:
+        description: Whether the application release tag is pending
+        value: ${{ jobs.release-eligibility.outputs.application-release-needed }}
+      chart-release-needed:
+        description: Whether the chart release tag is pending
+        value: ${{ jobs.release-eligibility.outputs.chart-release-needed }}
+      application-version:
+        description: Validated plain application version
+        value: ${{ jobs.release-eligibility.outputs.application-version }}
+      chart-version:
+        description: Validated plain chart version
+        value: ${{ jobs.release-eligibility.outputs.chart-version }}
+
+permissions: {}
+
+jobs:
+  release-eligibility:
+    name: Determine release eligibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      release-needed: ${{ steps.application-tag.outputs.tags-exist == 'false' || steps.chart-tag.outputs.tags-exist == 'false' }}
+      application-release-needed: ${{ steps.application-tag.outputs.tags-exist == 'false' }}
+      chart-release-needed: ${{ steps.chart-tag.outputs.tags-exist == 'false' }}
+      application-version: ${{ steps.versions.outputs.application-version }}
+      chart-version: ${{ steps.versions.outputs.chart-version }}
+
+    steps:
+      - name: Check out version metadata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate release versions
+        uses: SayakMukhopadhyay/github-actions/check-version@v1
+        with:
+          working-directory: .
+          helm: 'true'
+
+      - id: versions
+        name: Read validated release versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'application-version=%s\n' "$(<VERSION)"
+            printf 'chart-version=%s\n' "$(<charts/VERSION)"
+          } >> "$GITHUB_OUTPUT"
+
+      - id: application-tag
+        name: Check application release tag
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: v${{ steps.versions.outputs.application-version }}
+          mode: exists
+
+      - id: chart-tag
+        name: Check chart release tag
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: chart-v${{ steps.versions.outputs.chart-version }}
+          mode: exists

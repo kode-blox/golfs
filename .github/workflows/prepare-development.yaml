@@ -1,0 +1,117 @@
+name: Prepare Development
+
+on:
+  workflow_call:
+    secrets:
+      GITOPS_APP_PRIVATE_KEY:
+        description: GitHub App private key used to read the GitOps repository
+        required: true
+    outputs:
+      image-reference:
+        description: Published build-tag image reference
+        value: ${{ jobs.publish-container.outputs.image-reference }}
+      image-tag:
+        description: Published development container tag
+        value: ${{ jobs.publish-container.outputs.image-tag }}
+      image-digest:
+        description: Published image digest
+        value: ${{ jobs.publish-container.outputs.image-digest }}
+      chart-version:
+        description: Published development chart version, or empty when charts are unchanged
+        value: ${{ jobs.publish-chart.outputs.chart-version }}
+
+permissions: {}
+
+jobs:
+  publish-container:
+    name: Publish container
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-reference: ${{ steps.container.outputs.image-reference }}
+      image-tag: build-${{ github.sha }}
+      image-digest: ${{ steps.container.outputs.image-digest }}
+
+    steps:
+      - id: container
+        name: Build and publish container
+        uses: SayakMukhopadhyay/github-actions/container-build-push@v1
+        with:
+          version: build-${{ github.sha }}
+          registry: ghcr.io
+          image-repository: ${{ github.repository }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+          working-directory: .
+          push: 'true'
+
+  read-deployment-state:
+    name: Read deployment state
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: development
+    permissions:
+      contents: read
+    outputs:
+      charts-changed: ${{ steps.chart-changes.outputs.changed }}
+
+    steps:
+      - id: gitops-token
+        name: Create GitOps read token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.GITOPS_APP_ID }}
+          private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
+          owner: SayakMukhopadhyay
+          repositories: k8s-landscape-charts
+          permission-contents: read
+
+      - id: deployment-state
+        name: Read deployed state
+        uses: SayakMukhopadhyay/github-actions/helm-deployment-state@v1
+        with:
+          token: ${{ steps.gitops-token.outputs.token }}
+          environment: ${{ vars.GITOPS_ENVIRONMENT }}
+          chart-name: golfs
+          dependency: golfs
+          target-repository: SayakMukhopadhyay/k8s-landscape-charts
+
+      - id: chart-changes
+        name: Detect chart changes since deployed state
+        uses: SayakMukhopadhyay/github-actions/is-file-changed@v1
+        with:
+          pattern: ^charts/
+          base-ref: ${{ steps.deployment-state.outputs.chart-source-ref }}
+          head-ref: ${{ github.sha }}
+
+  publish-chart:
+    name: Publish chart
+    if: needs.read-deployment-state.outputs.charts-changed == 'true'
+    needs:
+      - publish-container
+      - read-deployment-state
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      chart-version: ${{ steps.chart.outputs.chart-version }}
+
+    steps:
+      - id: chart
+        name: Package and publish Helm chart
+        uses: SayakMukhopadhyay/github-actions/helm-package-push@v1
+        with:
+          development: 'true'
+          app-version: ${{ needs.publish-container.outputs.image-tag }}
+          registry: ghcr.io
+          repository: ${{ github.repository_owner }}/charts
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+          working-directory: .
+          push: 'true'

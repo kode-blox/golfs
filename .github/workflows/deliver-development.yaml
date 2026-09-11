@@ -1,0 +1,51 @@
+name: Deliver Development
+
+on:
+  workflow_call:
+    secrets:
+      GITOPS_APP_PRIVATE_KEY:
+        description: GitHub App private key used to read and update the GitOps repository
+        required: true
+    outputs:
+      image-digest:
+        description: Development-verified image digest
+        value: ${{ jobs.prepare-development.outputs.image-digest }}
+
+permissions: {}
+
+jobs:
+  prepare-development:
+    name: Prepare Development
+    permissions:
+      contents: read
+      packages: write
+    uses: $/.github/workflows/prepare-development.yaml
+    secrets:
+      GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
+
+  deploy-development:
+    name: Deploy Development
+    needs:
+      - prepare-development
+    permissions:
+      packages: read
+    uses: $/.github/workflows/deploy.yaml
+    with:
+      deployment-environment: development
+      chart-name: golfs
+      chart-version: ${{ needs.prepare-development.outputs.chart-version }}
+      image-tag: ${{ needs.prepare-development.outputs.image-tag }}
+    secrets:
+      GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
+
+  verify-development:
+    name: Verify Development
+    needs:
+      - deploy-development
+    permissions: {}
+    uses: $/.github/workflows/verify-deployment.yaml
+    with:
+      expected-gitops-commit: ${{ needs.deploy-development.outputs.commit-sha }}
+      deployment-environment: development
+    secrets:
+      GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
