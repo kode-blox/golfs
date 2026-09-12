@@ -5,7 +5,6 @@ on:
     branches:
       - main
     paths-ignore:
-      - '**/*.md'
       - 'LICENSE*'
       - '.idea/**'
   pull_request:
@@ -26,6 +25,24 @@ jobs:
       contents: read
     uses: $/.github/workflows/ci.yaml
 
+  detect-delivery-changes:
+    name: Detect Delivery Changes
+    permissions:
+      contents: read
+    uses: $/.github/workflows/detect-delivery-changes.yaml
+
+  deliver-documentation:
+    name: Deliver Documentation
+    if: needs.detect-delivery-changes.outputs.documentation-changed == 'true'
+    needs:
+      - detect-delivery-changes
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    uses: $/.github/workflows/deliver-documentation.yaml
+
   validate-container:
     name: Validate Container
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
@@ -37,23 +54,35 @@ jobs:
 
   deliver-development:
     name: Deliver Development
-    if: github.event_name == 'push'
+    if: >-
+      github.event_name == 'push' &&
+      (needs.detect-delivery-changes.outputs.application-changed == 'true' ||
+      needs.detect-delivery-changes.outputs.chart-changed == 'true')
     needs:
       - ci
+      - detect-delivery-changes
     permissions:
       contents: read
       packages: write
     uses: $/.github/workflows/deliver-development.yaml
+    with:
+      deliver-application: ${{ needs.detect-delivery-changes.outputs.application-changed == 'true' }}
+      deliver-chart: ${{ needs.detect-delivery-changes.outputs.chart-changed == 'true' }}
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
 
   release-eligibility:
     name: Release Eligibility
+    if: needs.detect-delivery-changes.outputs.application-release-requested == 'true' || needs.detect-delivery-changes.outputs.chart-release-requested == 'true'
     needs:
+      - detect-delivery-changes
       - deliver-development
     permissions:
       contents: read
     uses: $/.github/workflows/release-eligibility.yaml
+    with:
+      application-release-requested: ${{ needs.detect-delivery-changes.outputs.application-release-requested == 'true' }}
+      chart-release-requested: ${{ needs.detect-delivery-changes.outputs.chart-release-requested == 'true' }}
 
   deliver-production:
     name: Deliver Production

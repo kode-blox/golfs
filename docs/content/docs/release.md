@@ -1,6 +1,6 @@
 ---
 title: Release process
-description: Application and chart version authorities, staged delivery, recovery, and release records.
+description: Application and chart version authorities, staged delivery, manual delivery, and release records.
 ---
 
 The root `VERSION` file is the current application release authority.
@@ -30,20 +30,23 @@ The implementation remains split by responsibility:
 
 - `ci.yaml` validates the Go source, Helm chart, vulnerabilities, formatting,
   lint, and workflow syntax.
+- `detect-delivery-changes.yaml` resolves the native event range through
+  `Resolve-DeliveryEventRange.ps1`, then classifies application, chart,
+  documentation, and release-authority changes.
 - `validate-container.yaml` performs the pull-request and manually dispatched
   disposable container build with publishing disabled.
-- `deliver-development.yaml` prepares, deploys, and verifies one development
-  delivery, then returns the verified image digest required by production.
-- `prepare-development.yaml` builds the main commit once, publishes
-  `build-<full SHA>`, and returns its image reference, tag, and digest. In
-  parallel, it reads the development GitOps wrapper and compares `charts/**`
-  from the deployed chart's source ref to the current commit. It publishes a
-  `0.0.0-build-<full lowercase SHA>` development chart with
-  `appVersion: build-<full SHA>` only when that comparison finds chart changes;
-  otherwise its chart-version output is empty.
+- `deliver-documentation.yaml` builds and validates the documentation site,
+  then deploys it for pushes and manual runs selected from `main`.
+- `deliver-development.yaml` prepares the selected development artifacts and,
+  when requested, deploys and verifies them. It returns any prepared image
+  digest required by production.
+- `prepare-development.yaml` publishes only the selected application and chart
+  artifacts from the current `github.sha`, returning any published artifact
+  outputs.
 - `release-eligibility.yaml` validates the independent version authorities and
-  checks the `v<application version>` and `chart-v<chart version>` release tags
-  independently after development verification.
+  guards requested stable releases with independent
+  `v<application version>` and `chart-v<chart version>` tag probes after
+  development verification.
 - `deliver-production.yaml` prepares, deploys, and verifies one production
   delivery for the releases identified as pending.
 - `prepare-production.yaml` promotes the verified digest and publishes the stable
@@ -54,25 +57,39 @@ The implementation remains split by responsibility:
   by the selected Argo CD Application.
 - `create-release-records.yaml` creates only the pending immutable Git tags, then
   creates the matching GitHub Releases after tag creation succeeds.
+- `manual-deliver-development.yaml` runs CI for the selected branch or Git tag,
+  then explicitly publishes or reuses the selected development artifacts and
+  optionally deploys them.
+- `manual-deliver-production.yaml` validates release metadata and stable-tag
+  conflicts for the selected branch or Git tag, resolves the selected
+  development image when required, then runs production delivery and
+  release-record creation without re-running CI, development delivery, or
+  release eligibility.
 
 ## Pipeline graph
 
-A pull request runs only:
+A pull request runs:
 
 ```text
+detect delivery changes -> build and validate documentation when selected
 CI -> disposable container validation (push=false)
 ```
 
-A manual dispatch runs only the same validation path for the selected ref:
+A manual dispatch of `pipeline.yaml` runs the same validation path for the
+selected ref. When documentation changes are selected, it also builds and
+validates the site; a dispatch from `main` deploys that site:
 
 ```text
+detect delivery changes -> build documentation when selected
 ci -> validate-container (push=false)
 ```
 
-The top-level pipeline contains exactly these six business stages:
+The top-level pipeline contains these eight business stages:
 
 ```text
 ci
+detect-delivery-changes
+deliver-documentation
 validate-container
 deliver-development
 release-eligibility
@@ -83,28 +100,92 @@ release-records
 Every applicable push to `main` runs:
 
 ```text
+select application, chart, documentation, and release-intent changes from
+github.event.before..github.event.after
+  -> build and deploy documentation when selected
 CI
-  -> deliver development
-     (prepare, deploy, and verify;
-      preparation builds the container and reads development state in parallel)
-  -> determine release eligibility
+  -> prepare, deploy, and verify the selected development components
+  -> guard any stable release requested in that same pushed range
 ```
 
-An image-only development delivery deliberately skips development chart
-publication. The development deployment still runs with the new image tag and
-an empty chart-version input. A chart-changing delivery passes both the image
-tag and published development chart version to the same deployment call.
+The push range is always the full `github.event.before..github.event.after`
+range, so a multi-commit push is evaluated as one event. Selection determines
+which components to deliver; it does not select an older source revision. Every
+selected component is built or packaged from the final current `github.sha` and
+uses that full SHA in its development identity.
 
-If both immutable release tags already exist, the run is an ordinary main
-delivery and ends successfully after `release-eligibility`. Otherwise, only the
-required stable outputs are prepared:
+The normal development cases are:
+
+| Current push range | Development preparation | GitOps update |
+| --- | --- | --- |
+| Application only | Build or reuse `build-<full github.sha>` | Image tag only |
+| Chart only | Package or reuse `0.0.0-build-<full github.sha>` while preserving the authored `charts/Chart.yaml.appVersion` | Chart version only |
+| Application and chart | Use `build-<full github.sha>` and `0.0.0-build-<full github.sha>`, overriding the development chart `appVersion` with the same image tag | Image and chart together in one atomic commit |
+| Neither | Stop after CI | None |
+
+`chart-update-deploy@v1` receives only the selected outputs. When both
+components are selected it applies both values in one GitOps commit, preserving
+the atomic application-and-chart deployment boundary.
+
+## Exact-reference idempotency and manual delivery
+
+A rerun of the same push at the same `github.sha` derives the same exact
+development references. If a selected current reference already exists, the
+publication action reuses it or skips republishing it and continues with the
+same identity. This makes an exact-reference same-HEAD rerun idempotent.
+
+Normal pushes do not use GitOps deployment state as a publication baseline, do
+not resolve source history, and do not select or automatically publish missed
+artifacts from older revisions. Exact-reference reuse is therefore not
+historical auto-healing.
+
+Manual delivery is explicit and remains selected-commit scoped:
+
+- `manual-deliver-development.yaml` accepts `application`, `chart`, or `both`.
+  It runs CI for the branch or Git tag selected at dispatch, forces publication
+  or exact-reference reuse of the selected development artifacts, and deploys
+  and verifies them through the `development` Environment by default. Setting
+  `deploy` to false stops after preparation and publication.
+- `manual-deliver-production.yaml` accepts the same component and ref choices.
+  Application delivery requires the selected `build-<github.sha>` container;
+  chart delivery packages the stable chart directly from the selected ref and
+  does not require a development chart. The workflow validates the independent
+  version authorities and stable Git tag conflicts, then sends the selected
+  components through the `production` Environment before creating release
+  records. It does not call CI, development delivery, or
+  `release-eligibility.yaml`.
+
+Neither manual delivery workflow infers a different source revision or scans
+for missed historical work. Each operates on the exact `github.sha` resolved
+from the branch or Git tag selected at dispatch.
+
+## Stable release intent and delivery
+
+Stable release intent comes only from authority-file changes in the current
+`github.event.before..github.event.after` push range:
+
+- A root `VERSION` change requests an application release.
+- A `charts/VERSION` change requests a chart release.
+- Both changes request both releases.
+
+Other application or chart changes never imply a stable release. For each
+requested family, the immutable tag probe is only a guard:
+
+- A missing tag makes the current release eligible.
+- A tag already at the current `github.sha` means that release is complete and
+  is skipped.
+- A tag at another commit is a version conflict and fails the run.
+
+Only eligible stable outputs are prepared:
 
 ```text
-application pending: promote the verified digest to <application version>
-chart pending:       publish <chart version> with appVersion=<application version>
+application eligible: promote the resolved development digest to <application version>
+                      without rebuilding
+chart eligible:       publish <chart version> while preserving the authored
+                      charts/Chart.yaml.appVersion
                      -> deploy production once
                      -> verify production
-                     -> create release records
+                     -> create tags and releases at the current github.sha
 ```
 
 The application and chart decisions are independent:
@@ -116,11 +197,11 @@ The application and chart decisions are independent:
 | Chart only | Skipped | Chart version | Chart version only | Chart only |
 | Both | Application version | Chart version | Image and chart together | Application and chart |
 
-`release-eligibility` is the read-only production gate. A successful result with
-`release-needed` false skips production delivery and release records;
-`release-needed` true permits `deliver-production` to prepare, deploy, and verify
-the selected releases. An eligibility or delivery failure blocks release-record
-creation.
+`release-eligibility.yaml` is the read-only production gate. A successful result
+with `release-needed` false skips production delivery and release records;
+`release-needed` true permits `deliver-production.yaml` to prepare, deploy, and
+verify the selected releases. An eligibility or delivery failure blocks
+release-record creation.
 
 ## Container, chart, tag, and release conventions
 
@@ -130,14 +211,17 @@ Container tags never contain a `v` prefix:
 - Stable application: `<application version>`
 - Mutable `latest`: never created
 
-The image digest is an internal handoff from the one build to stable promotion.
-GitOps receives a tag, not the digest. The workflows do not perform client-side
+The image digest is an internal handoff from development publication or exact
+reference reuse to stable promotion. Application production adds the plain
+`<application version>` tag to that resolved digest without rebuilding. GitOps
+receives a tag, not the digest. The workflows do not perform client-side
 tag-immutability checks; any registry-side controls are separate and depend on
 the selected registry's supported, configured features.
 
 Development charts use `0.0.0-build-<full lowercase SHA>`. Stable charts use the
-plain `charts/VERSION` value. Chart-only releases preserve the production image
-tag because the deployment receives an empty image-tag input.
+plain `charts/VERSION` value and preserve the authored
+`charts/Chart.yaml.appVersion`. Chart-only releases preserve the production
+image tag because the deployment receives an empty image-tag input.
 
 Git tags and GitHub Releases use these separate families:
 
@@ -149,7 +233,14 @@ Git tags and GitHub Releases use these separate families:
 `release-tags@v1` ensures the selected tags in one non-force operation.
 `create-release@v1` runs only after that operation succeeds. Re-running after a
 partial failure is safe: existing immutable tags must resolve to the same
-commit, and an existing matching GitHub Release is returned unchanged.
+current `github.sha`, and an existing matching GitHub Release is returned
+unchanged. Both Git tags and their GitHub Releases therefore target the current
+pipeline commit.
+
+## Deferred supply-chain work
+
+Artifact provenance and signed attestations remain deferred. The current
+delivery graph does not claim either capability.
 
 ## Concurrency
 
@@ -210,8 +301,7 @@ The GitOps repository contains one wrapper per Environment:
 
 Each wrapper contains exactly one dependency named `golfs`, commits its
 `Chart.lock` and vendored dependency archive, and supports the image-tag value
-updated by `chart-update-deploy@v1`. The development chart also records the
-source ref consumed by `prepare-development.yaml`.
+updated by `chart-update-deploy@v1`.
 
 The deployment workflow changes only the selected wrapper. It does not modify
 ApplicationSets, bootstrap manifests, repository settings, or the live cluster.

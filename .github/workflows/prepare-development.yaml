@@ -2,22 +2,24 @@ name: Prepare Development
 
 on:
   workflow_call:
-    secrets:
-      GITOPS_APP_PRIVATE_KEY:
-        description: GitHub App private key used to read the GitOps repository
+    inputs:
+      deliver-application:
+        description: Publish the application from the current HEAD
         required: true
+        type: boolean
+      deliver-chart:
+        description: Publish the chart from the current HEAD
+        required: true
+        type: boolean
     outputs:
-      image-reference:
-        description: Published build-tag image reference
-        value: ${{ jobs.publish-container.outputs.image-reference }}
       image-tag:
-        description: Published development container tag
+        description: Published development container tag, or empty when application delivery is not selected
         value: ${{ jobs.publish-container.outputs.image-tag }}
       image-digest:
-        description: Published image digest
+        description: Published image digest, or empty when application delivery is not selected
         value: ${{ jobs.publish-container.outputs.image-digest }}
       chart-version:
-        description: Published development chart version, or empty when charts are unchanged
+        description: Published development chart version, or empty when chart delivery is not selected
         value: ${{ jobs.publish-chart.outputs.chart-version }}
 
 permissions: {}
@@ -25,14 +27,14 @@ permissions: {}
 jobs:
   publish-container:
     name: Publish container
+    if: inputs.deliver-application
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
       packages: write
     outputs:
-      image-reference: ${{ steps.container.outputs.image-reference }}
-      image-tag: build-${{ github.sha }}
+      image-tag: ${{ steps.container.outputs.image-reference != '' && format('build-{0}', github.sha) || '' }}
       image-digest: ${{ steps.container.outputs.image-digest }}
 
     steps:
@@ -46,54 +48,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
           working-directory: .
+          build-args: |
+            COMMIT=${{ github.sha }}
           push: 'true'
-
-  read-deployment-state:
-    name: Read deployment state
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment:
-      name: development
-    permissions:
-      contents: read
-    outputs:
-      charts-changed: ${{ steps.chart-changes.outputs.changed }}
-
-    steps:
-      - id: gitops-token
-        name: Create GitOps read token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ vars.GITOPS_APP_ID }}
-          private-key: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
-          owner: SayakMukhopadhyay
-          repositories: k8s-landscape-charts
-          permission-contents: read
-
-      - id: deployment-state
-        name: Read deployed state
-        uses: SayakMukhopadhyay/github-actions/helm-deployment-state@v1
-        with:
-          token: ${{ steps.gitops-token.outputs.token }}
-          environment: ${{ vars.GITOPS_ENVIRONMENT }}
-          chart-name: golfs
-          dependency: golfs
-          target-repository: SayakMukhopadhyay/k8s-landscape-charts
-
-      - id: chart-changes
-        name: Detect chart changes since deployed state
-        uses: SayakMukhopadhyay/github-actions/is-file-changed@v1
-        with:
-          pattern: ^charts/
-          base-ref: ${{ steps.deployment-state.outputs.chart-source-ref }}
-          head-ref: ${{ github.sha }}
 
   publish-chart:
     name: Publish chart
-    if: needs.read-deployment-state.outputs.charts-changed == 'true'
-    needs:
-      - publish-container
-      - read-deployment-state
+    if: inputs.deliver-chart
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -108,7 +69,7 @@ jobs:
         uses: SayakMukhopadhyay/github-actions/helm-package-push@v1
         with:
           development: 'true'
-          app-version: ${{ needs.publish-container.outputs.image-tag }}
+          app-version: ${{ inputs.deliver-application && format('build-{0}', github.sha) || '' }}
           registry: ghcr.io
           repository: ${{ github.repository_owner }}/charts
           username: ${{ github.actor }}

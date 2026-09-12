@@ -2,13 +2,27 @@ name: Deliver Development
 
 on:
   workflow_call:
+    inputs:
+      deliver-application:
+        description: Prepare and publish the application artifact from the current HEAD
+        required: true
+        type: boolean
+      deliver-chart:
+        description: Prepare and publish the chart artifact from the current HEAD
+        required: true
+        type: boolean
+      deploy:
+        description: Deploy the prepared artifacts to development
+        required: false
+        default: true
+        type: boolean
     secrets:
       GITOPS_APP_PRIVATE_KEY:
         description: GitHub App private key used to read and update the GitOps repository
         required: true
     outputs:
       image-digest:
-        description: Development-verified image digest
+        description: Prepared application image digest, or empty when application delivery is not selected
         value: ${{ jobs.prepare-development.outputs.image-digest }}
 
 permissions: {}
@@ -20,11 +34,13 @@ jobs:
       contents: read
       packages: write
     uses: $/.github/workflows/prepare-development.yaml
-    secrets:
-      GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
+    with:
+      deliver-application: ${{ inputs.deliver-application }}
+      deliver-chart: ${{ inputs.deliver-chart }}
 
   deploy-development:
     name: Deploy Development
+    if: inputs.deploy
     needs:
       - prepare-development
     permissions:
@@ -33,8 +49,8 @@ jobs:
     with:
       deployment-environment: development
       chart-name: golfs
-      chart-version: ${{ needs.prepare-development.outputs.chart-version }}
-      image-tag: ${{ needs.prepare-development.outputs.image-tag }}
+      chart-version: ${{ inputs.deliver-chart && needs.prepare-development.outputs.chart-version || '' }}
+      image-tag: ${{ inputs.deliver-application && needs.prepare-development.outputs.image-tag || '' }}
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
 

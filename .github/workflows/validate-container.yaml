@@ -21,4 +21,6 @@ jobs:
           registry: ghcr.io
           image-repository: ${{ github.repository }}
           working-directory: .
+          build-args: |
+            COMMIT=${{ github.sha }}
           push: 'false'

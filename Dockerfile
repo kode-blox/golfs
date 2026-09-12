@@ -16,9 +16,8 @@ COPY ./internal/ ./internal/
 
 ARG TARGETOS=linux
 ARG TARGETARCH
-RUN --mount=type=bind,source=.git,target=/app/.git,readonly \
-    VERSION="$(tr -d '\r\n' < VERSION)" && \
-    COMMIT="$(git rev-parse --verify 'HEAD^{commit}')" && \
+ARG COMMIT
+RUN VERSION="$(tr -d '\r\n' < VERSION)" && \
     test -n "$VERSION" && \
     test -n "$COMMIT" && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \

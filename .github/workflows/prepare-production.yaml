@@ -62,7 +62,6 @@ jobs:
         name: Package and publish Helm chart
         uses: SayakMukhopadhyay/github-actions/helm-package-push@v1
         with:
-          app-version: ${{ inputs.application-version }}
           registry: ghcr.io
           repository: ${{ github.repository_owner }}/charts
           username: ${{ github.actor }}

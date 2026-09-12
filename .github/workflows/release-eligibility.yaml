@@ -2,6 +2,15 @@ name: Release Eligibility
 
 on:
   workflow_call:
+    inputs:
+      application-release-requested:
+        description: Whether the root VERSION changed in the current push
+        required: true
+        type: boolean
+      chart-release-requested:
+        description: Whether charts/VERSION changed in the current push
+        required: true
+        type: boolean
     outputs:
       release-needed:
         description: Whether any production release is pending
@@ -29,9 +38,9 @@ jobs:
     permissions:
       contents: read
     outputs:
-      release-needed: ${{ steps.application-tag.outputs.tags-exist == 'false' || steps.chart-tag.outputs.tags-exist == 'false' }}
-      application-release-needed: ${{ steps.application-tag.outputs.tags-exist == 'false' }}
-      chart-release-needed: ${{ steps.chart-tag.outputs.tags-exist == 'false' }}
+      release-needed: ${{ (inputs.application-release-requested && steps.application-tag-exists.outputs.tags-exist == 'false') || (inputs.chart-release-requested && steps.chart-tag-exists.outputs.tags-exist == 'false') }}
+      application-release-needed: ${{ inputs.application-release-requested && steps.application-tag-exists.outputs.tags-exist == 'false' }}
+      chart-release-needed: ${{ inputs.chart-release-requested && steps.chart-tag-exists.outputs.tags-exist == 'false' }}
       application-version: ${{ steps.versions.outputs.application-version }}
       chart-version: ${{ steps.versions.outputs.chart-version }}
 
@@ -58,18 +67,56 @@ jobs:
             printf 'chart-version=%s\n' "$(<charts/VERSION)"
           } >> "$GITHUB_OUTPUT"
 
-      - id: application-tag
+      - id: application-tag-exists
         name: Check application release tag
+        if: inputs.application-release-requested
         uses: SayakMukhopadhyay/github-actions/release-tags@v1
         with:
           token: ${{ github.token }}
           tags: v${{ steps.versions.outputs.application-version }}
           mode: exists
 
-      - id: chart-tag
+      - id: application-tag-verify
+        name: Verify existing application release tag
+        if: inputs.application-release-requested && steps.application-tag-exists.outputs.tags-exist == 'true'
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: v${{ steps.versions.outputs.application-version }}
+          mode: verify
+
+      - name: Reject reused application version
+        if: inputs.application-release-requested && steps.application-tag-exists.outputs.tags-exist == 'true' && steps.application-tag-verify.outputs.tags-match != 'true'
+        shell: bash
+        env:
+          APPLICATION_VERSION: ${{ steps.versions.outputs.application-version }}
+        run: |
+          printf '::error::Application version %s is already tagged at another commit.\n' "$APPLICATION_VERSION"
+          exit 1
+
+      - id: chart-tag-exists
         name: Check chart release tag
+        if: inputs.chart-release-requested
         uses: SayakMukhopadhyay/github-actions/release-tags@v1
         with:
           token: ${{ github.token }}
           tags: chart-v${{ steps.versions.outputs.chart-version }}
           mode: exists
+
+      - id: chart-tag-verify
+        name: Verify existing chart release tag
+        if: inputs.chart-release-requested && steps.chart-tag-exists.outputs.tags-exist == 'true'
+        uses: SayakMukhopadhyay/github-actions/release-tags@v1
+        with:
+          token: ${{ github.token }}
+          tags: chart-v${{ steps.versions.outputs.chart-version }}
+          mode: verify
+
+      - name: Reject reused chart version
+        if: inputs.chart-release-requested && steps.chart-tag-exists.outputs.tags-exist == 'true' && steps.chart-tag-verify.outputs.tags-match != 'true'
+        shell: bash
+        env:
+          CHART_VERSION: ${{ steps.versions.outputs.chart-version }}
+        run: |
+          printf '::error::Chart version %s is already tagged at another commit.\n' "$CHART_VERSION"
+          exit 1
