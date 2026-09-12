@@ -1,4 +1,7 @@
-# Threat model
+---
+title: Threat model
+description: Protected assets, trust boundaries, controls, and accepted security limitations.
+---
 
 ## Protected assets
 

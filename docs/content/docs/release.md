@@ -1,4 +1,7 @@
-# Release process
+---
+title: Release process
+description: Application and chart version authorities, staged delivery, recovery, and release records.
+---
 
 The root `VERSION` file is the current application release authority.
 `charts/VERSION` is the independent chart version authority.

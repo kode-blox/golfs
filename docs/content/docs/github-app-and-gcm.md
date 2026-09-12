@@ -1,4 +1,7 @@
-# GitHub App and GCM setup
+---
+title: GitHub App and GCM setup
+description: Configure the GitHub App, Git Credential Manager, and repository-specific LFS endpoint.
+---
 
 ## Create the GitHub App
 

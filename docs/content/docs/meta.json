@@ -1,0 +1,14 @@
+{
+  "title": "GOLFS Docs",
+  "pages": [
+    "---Design and security---",
+    "architecture",
+    "threat-model",
+    "---Using GOLFS---",
+    "configuration",
+    "github-app-and-gcm",
+    "---Operating GOLFS---",
+    "operations",
+    "release"
+  ]
+}

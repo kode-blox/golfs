@@ -1,4 +1,7 @@
-# Configuration
+---
+title: Configuration
+description: Environment variables, startup validation, listeners, limits, and runtime configuration.
+---
 
 GOLFS reads configuration from environment variables and fails startup before readiness if required values are missing or unsafe.
 

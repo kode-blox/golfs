@@ -124,3 +124,10 @@ AgentNotes/
 
 # Helm package artifacts
 charts/*.tgz
+
+# Documentation application artifacts
+node_modules/
+docs/.next/
+docs/.source/
+docs/next-env.d.ts
+docs/tsconfig.tsbuildinfo

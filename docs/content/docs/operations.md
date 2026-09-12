@@ -1,4 +1,7 @@
-# Operations
+---
+title: Operations
+description: Health endpoints, metrics, retention, backups, and troubleshooting guidance.
+---
 
 ## Endpoints
 

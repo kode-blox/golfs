@@ -1,0 +1,18 @@
+{
+  "name": "golfs",
+  "version": "0.0.0",
+  "description": "A stateless Git LFS server for GitHub repositories backed by S3-compatible object storage.",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kode-blox/golfs.git"
+  },
+  "homepage": "https://kode-blox.github.io/golfs/",
+  "bugs": {
+    "url": "https://github.com/kode-blox/golfs/issues"
+  },
+  "workspaces": [
+    "docs"
+  ]
+}

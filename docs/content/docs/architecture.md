@@ -1,4 +1,7 @@
-# Architecture
+---
+title: Architecture
+description: Component boundaries, repository identity, and Git LFS upload and download flows.
+---
 
 ## Boundaries
 

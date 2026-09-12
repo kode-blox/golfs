@@ -35,11 +35,11 @@ GET /readyz
 GET /metrics
 ```
 
-There are no object proxy or redirect routes. See [Architecture](docs/architecture.md), [configuration](docs/configuration.md), and [operations](docs/operations.md) for the complete contract.
+There are no object proxy or redirect routes. See [Architecture](docs/content/docs/architecture.md), [configuration](docs/content/docs/configuration.md), and [operations](docs/content/docs/operations.md) for the complete contract.
 
 ## Client setup
 
-Create and install the GitHub App, then configure GCM 2.9.0 or later using the exact commands in [GitHub App and GCM setup](docs/github-app-and-gcm.md). Set the repository's LFS URL:
+Create and install the GitHub App, then configure GCM 2.9.0 or later using the exact commands in [GitHub App and GCM setup](docs/content/docs/github-app-and-gcm.md). Set the repository's LFS URL:
 
 ```shell
 git config --local lfs.url "https://lfs.example.com/github.com/OWNER/REPOSITORY/info/lfs"
