@@ -116,12 +116,12 @@ uses that full SHA in its development identity.
 
 The normal development cases are:
 
-| Current push range | Development preparation | GitOps update |
-| --- | --- | --- |
-| Application only | Build or reuse `build-<full github.sha>` | Image tag only |
-| Chart only | Package or reuse `0.0.0-build-<full github.sha>` while preserving the authored `charts/Chart.yaml.appVersion` | Chart version only |
+| Current push range    | Development preparation                                                                                                                  | GitOps update                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Application only      | Build or reuse `build-<full github.sha>`                                                                                                 | Image tag only                                |
+| Chart only            | Package or reuse `0.0.0-build-<full github.sha>` while preserving the authored `charts/Chart.yaml.appVersion`                            | Chart version only                            |
 | Application and chart | Use `build-<full github.sha>` and `0.0.0-build-<full github.sha>`, overriding the development chart `appVersion` with the same image tag | Image and chart together in one atomic commit |
-| Neither | Stop after CI | None |
+| Neither               | Stop after CI                                                                                                                            | None                                          |
 
 `chart-update-deploy@v1` receives only the selected outputs. When both
 components are selected it applies both values in one GitOps commit, preserving
@@ -192,12 +192,12 @@ chart eligible:       publish <chart version> while preserving the authored
 
 The application and chart decisions are independent:
 
-| Delivery | Stable container promotion | Stable chart publication | Production update | Release records |
-| --- | --- | --- | --- | --- |
-| Ordinary main | Skipped | Skipped | Skipped | None |
-| Application only | Application version | Skipped | Image tag only | Application only |
-| Chart only | Skipped | Chart version | Chart version only | Chart only |
-| Both | Application version | Chart version | Image and chart together | Application and chart |
+| Delivery         | Stable container promotion | Stable chart publication | Production update        | Release records       |
+| ---------------- | -------------------------- | ------------------------ | ------------------------ | --------------------- |
+| Ordinary main    | Skipped                    | Skipped                  | Skipped                  | None                  |
+| Application only | Application version        | Skipped                  | Image tag only           | Application only      |
+| Chart only       | Skipped                    | Chart version            | Chart version only       | Chart only            |
+| Both             | Application version        | Chart version            | Image and chart together | Application and chart |
 
 `release-eligibility.yaml` is the read-only production gate. A successful result
 with `release-needed` false skips production delivery and release records;
@@ -227,10 +227,10 @@ image tag because the deployment receives an empty image-tag input.
 
 Git tags and GitHub Releases use these separate families:
 
-| Family | Git tag | GitHub Release name | Release-note pathspecs |
-| --- | --- | --- | --- |
+| Family      | Git tag                  | GitHub Release name            | Release-note pathspecs                             |
+| ----------- | ------------------------ | ------------------------------ | -------------------------------------------------- |
 | Application | `v<application version>` | `GOLFS v<application version>` | Top-level repository content excluding `charts/**` |
-| Chart | `chart-v<chart version>` | `GOLFS chart v<chart version>` | `charts/**` only |
+| Chart       | `chart-v<chart version>` | `GOLFS chart v<chart version>` | `charts/**` only                                   |
 
 `release-tags@v1` ensures the selected tags in one non-force operation.
 `create-release@v1` runs only after that operation succeeds. It exchanges the

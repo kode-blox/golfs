@@ -1,11 +1,15 @@
+import { Inter } from "next/font/google";
 import { Provider } from "@/components/provider";
-import { siteBasePath, siteOrigin } from "@/lib/shared";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./global.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  metadataBase: new URL(`${siteOrigin}${siteBasePath || "/"}`),
+  metadataBase: new URL("https://golfs.kodeblox.com"),
   title: {
     default: "GOLFS Docs",
     template: "%s | GOLFS Docs",
@@ -15,8 +19,8 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="flex min-h-screen flex-col">
+    <html lang="en" className={inter.className} suppressHydrationWarning>
+      <body className="flex flex-col min-h-screen">
         <Provider>{children}</Provider>
       </body>
     </html>

@@ -17,14 +17,14 @@ The GitHub App private key and S3 credentials must be backed up through the plat
 
 ## Troubleshooting
 
-| Symptom | Meaning |
-|---|---|
-| `401` with `LFS-Authenticate` | Missing, malformed, expired, non-`ghu_`, or wrong-App credential |
-| `403` on upload or Verify | User has pull but not push permission |
-| `404` | Repository is inaccessible, App is not installed, or requested object is absent |
-| `422` | Request validation failed or existing object metadata conflicts |
-| `429` | GitHub rate limit, retry after the response delay |
-| `503` | GitHub or S3 is temporarily unavailable |
+| Symptom                       | Meaning                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| `401` with `LFS-Authenticate` | Missing, malformed, expired, non-`ghu_`, or wrong-App credential                |
+| `403` on upload or Verify     | User has pull but not push permission                                           |
+| `404`                         | Repository is inaccessible, App is not installed, or requested object is absent |
+| `422`                         | Request validation failed or existing object metadata conflicts                 |
+| `429`                         | GitHub rate limit, retry after the response delay                               |
+| `503`                         | GitHub or S3 is temporarily unavailable                                         |
 
 Top-level errors include `X-Request-ID` and a matching JSON `request_id`. Use this ID to correlate sanitized application logs. Per-object Batch errors deliberately do not fail successful objects in the same Batch.
 

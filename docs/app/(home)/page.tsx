@@ -1,12 +1,14 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-24 text-center">
-      <div className="mx-auto flex max-w-3xl flex-col items-center gap-7">
+    <div className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-6">
+        <Image src="/images/logo.svg" alt="" width={64} height={64} unoptimized className="size-16" />
         <div className="space-y-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-fd-primary">Git LFS infrastructure</p>
-          <h1 className="text-5xl font-bold tracking-tight sm:text-7xl">GOLFS Docs</h1>
+          <p className="text-sm font-medium text-fd-muted-foreground">Git LFS infrastructure</p>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">GOLFS Docs</h1>
           <p className="mx-auto max-w-2xl text-balance text-lg text-fd-muted-foreground">
             Architecture, configuration, client setup, operations, security, and release guidance for the GOLFS
             stateless Git LFS server.
@@ -27,6 +29,6 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
