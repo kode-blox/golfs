@@ -7,12 +7,12 @@ on:
         description: Development-verified image digest promoted without rebuilding
         required: true
         type: string
-      application-release-needed:
-        description: Whether the application release tag is pending
+      deliver-application:
+        description: Promote the application artifact to its production version
         required: true
         type: boolean
-      chart-release-needed:
-        description: Whether the chart release tag is pending
+      deliver-chart:
+        description: Publish the production chart artifact
         required: true
         type: boolean
       application-version:
@@ -29,7 +29,7 @@ permissions: {}
 jobs:
   promote-container:
     name: Promote container
-    if: inputs.application-release-needed
+    if: inputs.deliver-application
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -48,7 +48,7 @@ jobs:
 
   publish-chart:
     name: Publish chart
-    if: inputs.chart-release-needed
+    if: inputs.deliver-chart
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

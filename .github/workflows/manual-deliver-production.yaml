@@ -11,6 +11,11 @@ on:
           - application
           - chart
           - both
+      deploy:
+        description: Deploy the prepared artifacts to production
+        required: false
+        default: true
+        type: boolean
 
 permissions: {}
 
@@ -135,10 +140,11 @@ jobs:
     uses: $/.github/workflows/deliver-production.yaml
     with:
       source-digest: ${{ needs.resolve-production-inputs.outputs.source-digest }}
-      application-release-needed: ${{ inputs.component == 'application' || inputs.component == 'both' }}
-      chart-release-needed: ${{ inputs.component == 'chart' || inputs.component == 'both' }}
+      deliver-application: ${{ inputs.component == 'application' || inputs.component == 'both' }}
+      deliver-chart: ${{ inputs.component == 'chart' || inputs.component == 'both' }}
       application-version: ${{ needs.resolve-production-inputs.outputs.application-version }}
       chart-version: ${{ needs.resolve-production-inputs.outputs.chart-version }}
+      deploy: ${{ inputs.deploy }}
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
 

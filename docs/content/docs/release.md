@@ -151,8 +151,10 @@ Manual delivery is explicit and remains selected-commit scoped:
   chart delivery packages the stable chart directly from the selected ref and
   does not require a development chart. The workflow validates the independent
   version authorities and stable Git tag conflicts, then sends the selected
-  components through the `production` Environment before creating release
-  records. It does not call CI, development delivery, or
+  components through the `production` Environment by default before creating
+  release records. Setting `deploy` to false skips GitOps deployment and
+  verification but still prepares the stable artifacts and creates their
+  release records. The workflow does not call CI, development delivery, or
   `release-eligibility.yaml`.
 
 Neither manual delivery workflow infers a different source revision or scans

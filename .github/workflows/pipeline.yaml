@@ -96,8 +96,8 @@ jobs:
     uses: $/.github/workflows/deliver-production.yaml
     with:
       source-digest: ${{ needs.deliver-development.outputs.image-digest }}
-      application-release-needed: ${{ needs.release-eligibility.outputs.application-release-needed == 'true' }}
-      chart-release-needed: ${{ needs.release-eligibility.outputs.chart-release-needed == 'true' }}
+      deliver-application: ${{ needs.release-eligibility.outputs.application-release-needed == 'true' }}
+      deliver-chart: ${{ needs.release-eligibility.outputs.chart-release-needed == 'true' }}
       application-version: ${{ needs.release-eligibility.outputs.application-version }}
       chart-version: ${{ needs.release-eligibility.outputs.chart-version }}
     secrets:

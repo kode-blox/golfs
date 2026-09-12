@@ -7,12 +7,12 @@ on:
         description: Development-verified image digest promoted without rebuilding
         required: true
         type: string
-      application-release-needed:
-        description: Whether the application release tag is pending
+      deliver-application:
+        description: Prepare and deliver the application artifact
         required: true
         type: boolean
-      chart-release-needed:
-        description: Whether the chart release tag is pending
+      deliver-chart:
+        description: Prepare and deliver the chart artifact
         required: true
         type: boolean
       application-version:
@@ -23,6 +23,11 @@ on:
         description: Validated plain chart version
         required: true
         type: string
+      deploy:
+        description: Deploy the prepared artifacts to production
+        required: false
+        default: true
+        type: boolean
     secrets:
       GITOPS_APP_PRIVATE_KEY:
         description: GitHub App private key used to read and update the GitOps repository
@@ -39,13 +44,14 @@ jobs:
     uses: $/.github/workflows/prepare-production.yaml
     with:
       source-digest: ${{ inputs.source-digest }}
-      application-release-needed: ${{ inputs.application-release-needed }}
-      chart-release-needed: ${{ inputs.chart-release-needed }}
+      deliver-application: ${{ inputs.deliver-application }}
+      deliver-chart: ${{ inputs.deliver-chart }}
       application-version: ${{ inputs.application-version }}
       chart-version: ${{ inputs.chart-version }}
 
   deploy-production:
     name: Deploy Production
+    if: inputs.deploy
     needs:
       - prepare-production
     permissions:
@@ -54,8 +60,8 @@ jobs:
     with:
       deployment-environment: production
       chart-name: golfs
-      chart-version: ${{ inputs.chart-release-needed && inputs.chart-version || '' }}
-      image-tag: ${{ inputs.application-release-needed && inputs.application-version || '' }}
+      chart-version: ${{ inputs.deliver-chart && inputs.chart-version || '' }}
+      image-tag: ${{ inputs.deliver-application && inputs.application-version || '' }}
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
 
