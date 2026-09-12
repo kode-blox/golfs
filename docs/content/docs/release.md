@@ -233,7 +233,9 @@ Git tags and GitHub Releases use these separate families:
 | Chart | `chart-v<chart version>` | `GOLFS chart v<chart version>` | `charts/**` only |
 
 `release-tags@v1` ensures the selected tags in one non-force operation.
-`create-release@v1` runs only after that operation succeeds. Re-running after a
+`create-release@v1` runs only after that operation succeeds. It exchanges the
+job's GitHub OIDC token for short-lived OpenAI credentials through workload
+identity federation. Re-running after a
 partial failure is safe: existing immutable tags must resolve to the same
 current `github.sha`, and an existing matching GitHub Release is returned
 unchanged. Both Git tags and their GitHub Releases therefore target the current
@@ -292,7 +294,12 @@ The `production` Environment provides:
 - Secret `ARGOCD_AUTH_TOKEN` with the read-only Argo CD token.
 - Secrets `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` with the
   verifier's Cloudflare Access service-token credentials.
-- Secret `OPENAI_API_KEY` for GitHub Release descriptions.
+- Variable `OPENAI_WIF_AUDIENCE` with the audience configured on the OpenAI
+  workload identity provider.
+- Variable `OPENAI_IDENTITY_PROVIDER_ID` with that OpenAI workload identity
+  provider's ID.
+- Variable `OPENAI_SERVICE_ACCOUNT_ID` with the production OpenAI service
+  account ID selected by the provider's production mapping.
 - Required reviewers and any other deployment protection rules for the
   production approval boundary.
 

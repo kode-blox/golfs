@@ -155,6 +155,7 @@ jobs:
       - deliver-production
     permissions:
       contents: write
+      id-token: write
     uses: $/.github/workflows/create-release-records.yaml
     with:
       application-release-needed: ${{ inputs.component == 'application' || inputs.component == 'both' }}

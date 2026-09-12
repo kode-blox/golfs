@@ -19,11 +19,6 @@ on:
         description: Validated chart version from release eligibility
         required: true
         type: string
-    secrets:
-      OPENAI_API_KEY:
-        description: OpenAI API key supplied by the production Environment
-        required: false
-
 permissions: {}
 
 jobs:
@@ -73,6 +68,7 @@ jobs:
       url: ${{ vars.URL }}
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - name: Create application GitHub Release
@@ -81,7 +77,9 @@ jobs:
           token: ${{ github.token }}
           tag-name: v${{ inputs['application-version'] }}
           release-name: GOLFS v${{ inputs['application-version'] }}
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          openai-wif-audience: ${{ vars.OPENAI_WIF_AUDIENCE }}
+          openai-identity-provider-id: ${{ vars.OPENAI_IDENTITY_PROVIDER_ID }}
+          openai-service-account-id: ${{ vars.OPENAI_SERVICE_ACCOUNT_ID }}
           pathspecs: |
             :(top,glob)**
             :(top,glob,exclude)charts/**
@@ -98,6 +96,7 @@ jobs:
       url: ${{ vars.URL }}
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - name: Create chart GitHub Release
@@ -106,6 +105,8 @@ jobs:
           token: ${{ github.token }}
           tag-name: chart-v${{ inputs['chart-version'] }}
           release-name: GOLFS chart v${{ inputs['chart-version'] }}
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          openai-wif-audience: ${{ vars.OPENAI_WIF_AUDIENCE }}
+          openai-identity-provider-id: ${{ vars.OPENAI_IDENTITY_PROVIDER_ID }}
+          openai-service-account-id: ${{ vars.OPENAI_SERVICE_ACCOUNT_ID }}
           pathspecs: |
             :(top,glob)charts/**

@@ -110,6 +110,7 @@ jobs:
       - deliver-production
     permissions:
       contents: write
+      id-token: write
     uses: $/.github/workflows/create-release-records.yaml
     with:
       application-release-needed: ${{ needs.release-eligibility.outputs.application-release-needed == 'true' }}
