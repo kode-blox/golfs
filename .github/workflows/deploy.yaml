@@ -60,5 +60,5 @@ jobs:
           image-tag: ${{ inputs.image-tag }}
           dependency: ${{ inputs.chart-name }}
           registry: ${{ inputs.chart-version != '' && 'ghcr.io' || '' }}
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+          username: ${{ inputs.chart-version != '' && github.actor || '' }}
+          password: ${{ inputs.chart-version != '' && github.token || '' }}
