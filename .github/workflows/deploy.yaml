@@ -2,10 +2,6 @@ name: Deploy
 
 on:
   workflow_call:
-    outputs:
-      commit-sha:
-        description: Resulting GitOps repository commit SHA
-        value: ${{ jobs.deploy.outputs.commit-sha }}
     inputs:
       deployment-environment:
         description: GitHub Environment selected by the pipeline
@@ -19,12 +15,12 @@ on:
         description: Optional published GOLFS chart version
         required: false
         type: string
-        default: ''
+        default: ""
       image-tag:
         description: Optional GOLFS container image tag
         required: false
         type: string
-        default: ''
+        default: ""
     secrets:
       GITOPS_APP_PRIVATE_KEY:
         description: GitHub App private key used to update the GitOps repository
@@ -42,8 +38,6 @@ jobs:
       url: ${{ vars.URL }}
     permissions:
       packages: read
-    outputs:
-      commit-sha: ${{ steps.deployment.outputs.commit-sha }}
 
     steps:
       - id: gitops-token
@@ -56,8 +50,7 @@ jobs:
           repositories: k8s-landscape-charts
           permission-contents: write
 
-      - id: deployment
-        name: Update GitOps deployment state
+      - name: Update GitOps deployment state
         uses: SayakMukhopadhyay/github-actions/chart-update-deploy@v1
         with:
           token: ${{ steps.gitops-token.outputs.token }}

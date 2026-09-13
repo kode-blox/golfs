@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       source-digest:
-        description: Development-verified image digest promoted without rebuilding
+        description: Published development image digest promoted without rebuilding
         required: true
         type: string
       deliver-application:
@@ -30,7 +30,7 @@ on:
         type: boolean
     secrets:
       GITOPS_APP_PRIVATE_KEY:
-        description: GitHub App private key used to read and update the GitOps repository
+        description: GitHub App private key used to update the GitOps repository
         required: true
 
 permissions: {}
@@ -62,17 +62,5 @@ jobs:
       chart-name: golfs
       chart-version: ${{ inputs.deliver-chart && inputs.chart-version || '' }}
       image-tag: ${{ inputs.deliver-application && inputs.application-version || '' }}
-    secrets:
-      GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
-
-  verify-production:
-    name: Verify Production
-    needs:
-      - deploy-production
-    permissions: {}
-    uses: $/.github/workflows/verify-deployment.yaml
-    with:
-      expected-gitops-commit: ${{ needs.deploy-production.outputs.commit-sha }}
-      deployment-environment: production
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}

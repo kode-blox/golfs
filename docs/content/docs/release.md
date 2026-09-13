@@ -38,23 +38,22 @@ The implementation remains split by responsibility:
 - `deliver-documentation.yaml` builds and validates the documentation site,
   then deploys it for pushes and manual runs selected from `main`.
 - `deliver-development.yaml` prepares the selected development artifacts and,
-  when requested, deploys and verifies them. It returns any prepared image
-  digest required by production.
+  when requested, deploys them. It returns any published image digest required
+  by production.
 - `prepare-development.yaml` publishes only the selected application and chart
   artifacts from the current `github.sha`, returning any published artifact
   outputs.
 - `release-eligibility.yaml` validates the independent version authorities and
   guards requested stable releases with independent
   `v<application version>` and `chart-v<chart version>` tag probes after
-  development verification.
-- `deliver-production.yaml` prepares, deploys, and verifies one production
-  delivery for the releases identified as pending.
-- `prepare-production.yaml` promotes the verified digest and publishes the stable
-  chart in parallel for the releases identified as pending.
+  development delivery.
+- `deliver-production.yaml` prepares and deploys one production delivery for
+  the releases identified as pending.
+- `prepare-production.yaml` promotes the published development digest and
+  publishes the stable chart in parallel for the releases identified as
+  pending.
 - `deploy.yaml` updates one GitOps wrapper with an optional chart version, an
-  optional image tag, or both in one commit, then returns that commit SHA.
-- `verify-deployment.yaml` verifies that the exact GitOps commit was synchronized
-  by the selected Argo CD Application.
+  optional image tag, or both in one commit.
 - `create-release-records.yaml` creates only the pending immutable Git tags, then
   creates the matching GitHub Releases after tag creation succeeds.
 - `manual-deliver-development.yaml` runs CI for the selected branch or Git tag,
@@ -104,7 +103,7 @@ select application, chart, documentation, and release-intent changes from
 github.event.before..github.event.after
   -> build and deploy documentation when selected
 CI
-  -> prepare, deploy, and verify the selected development components
+  -> prepare and deploy the selected development components
   -> guard any stable release requested in that same pushed range
 ```
 
@@ -144,18 +143,17 @@ Manual delivery is explicit and remains selected-commit scoped:
 - `manual-deliver-development.yaml` accepts `application`, `chart`, or `both`.
   It runs CI for the branch or Git tag selected at dispatch, forces publication
   or exact-reference reuse of the selected development artifacts, and deploys
-  and verifies them through the `development` Environment by default. Setting
-  `deploy` to false stops after preparation and publication.
+  them through the `development` Environment by default. Setting `deploy` to
+  false stops after preparation and publication.
 - `manual-deliver-production.yaml` accepts the same component and ref choices.
   Application delivery requires the selected `build-<github.sha>` container;
   chart delivery packages the stable chart directly from the selected ref and
   does not require a development chart. The workflow validates the independent
   version authorities and stable Git tag conflicts, then sends the selected
   components through the `production` Environment by default before creating
-  release records. Setting `deploy` to false skips GitOps deployment and
-  verification but still prepares the stable artifacts and creates their
-  release records. The workflow does not call CI, development delivery, or
-  `release-eligibility.yaml`.
+  release records. Setting `deploy` to false skips GitOps deployment but still
+  prepares the stable artifacts and creates their release records. The workflow
+  does not call CI, development delivery, or `release-eligibility.yaml`.
 
 Neither manual delivery workflow infers a different source revision or scans
 for missed historical work. Each operates on the exact `github.sha` resolved
@@ -186,7 +184,6 @@ application eligible: promote the resolved development digest to <application ve
 chart eligible:       publish <chart version> while preserving the authored
                       charts/Chart.yaml.appVersion
                      -> deploy production once
-                     -> verify production
                      -> create tags and releases at the current github.sha
 ```
 
@@ -201,9 +198,9 @@ The application and chart decisions are independent:
 
 `release-eligibility.yaml` is the read-only production gate. A successful result
 with `release-needed` false skips production delivery and release records;
-`release-needed` true permits `deliver-production.yaml` to prepare, deploy, and
-verify the selected releases. An eligibility or delivery failure blocks
-release-record creation.
+`release-needed` true permits `deliver-production.yaml` to prepare and deploy the
+selected releases. An eligibility or delivery failure blocks release-record
+creation.
 
 ## Container, chart, tag, and release conventions
 
@@ -252,8 +249,7 @@ The pipeline concurrency group separates push, pull-request, and manual runs.
 Pull-request groups are pull-request-specific; push and manual groups are
 ref-specific within their event type. A newer pull-request or manual run may
 cancel an older matching run. Push runs never cancel an in-progress delivery,
-keeping publication, GitOps updates, verification, and release records
-serialized.
+keeping publication, GitOps updates, and release records serialized.
 
 ## Required repository and Environment configuration
 
@@ -276,24 +272,12 @@ Repository configuration:
 The `development` Environment provides:
 
 - Variable `GITOPS_ENVIRONMENT` set to `hetzner-fsn1-dc4-prod/dev`.
-- Variable `ARGOCD_SERVER` with the Argo CD server hostname.
-- Variable `ARGOCD_APPLICATION` set to
-  `golfs-dev-hetzner-fsn1-dc4-prod`.
 - Variable `URL` with the development deployment URL.
-- Secret `ARGOCD_AUTH_TOKEN` with the read-only Argo CD token.
-- Secrets `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` with the
-  verifier's Cloudflare Access service-token credentials.
 
 The `production` Environment provides:
 
 - Variable `GITOPS_ENVIRONMENT` set to `hetzner-fsn1-dc4-prod/prod`.
-- Variable `ARGOCD_SERVER` with the Argo CD server hostname.
-- Variable `ARGOCD_APPLICATION` set to
-  `golfs-prod-hetzner-fsn1-dc4-prod`.
 - Variable `URL` with the production deployment URL and release-record URL.
-- Secret `ARGOCD_AUTH_TOKEN` with the read-only Argo CD token.
-- Secrets `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` with the
-  verifier's Cloudflare Access service-token credentials.
 - Variable `OPENAI_WIF_AUDIENCE` with the audience configured on the OpenAI
   workload identity provider.
 - Variable `OPENAI_IDENTITY_PROVIDER_ID` with that OpenAI workload identity
@@ -314,4 +298,6 @@ updated by `chart-update-deploy@v1`.
 
 The deployment workflow changes only the selected wrapper. It does not modify
 ApplicationSets, bootstrap manifests, repository settings, or the live cluster.
-Argo CD observes the GitOps commit and reconciles the selected Environment.
+The delivery pipeline considers deployment complete when that GitOps commit
+succeeds. Argo CD observes the commit and owns reconciliation of the selected
+Environment; Kubernetes and the cluster's monitoring own runtime health.

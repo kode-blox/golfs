@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       source-digest:
-        description: Development-verified image digest promoted without rebuilding
+        description: Published development image digest promoted without rebuilding
         required: true
         type: string
       deliver-application:
@@ -36,7 +36,7 @@ jobs:
       packages: write
 
     steps:
-      - name: Promote verified container
+      - name: Promote published container
         uses: SayakMukhopadhyay/github-actions/container-promote@v1
         with:
           source-digest: ${{ inputs.source-digest }}
@@ -67,4 +67,4 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
           working-directory: .
-          push: 'true'
+          push: "true"

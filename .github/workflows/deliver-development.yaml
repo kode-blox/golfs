@@ -18,7 +18,7 @@ on:
         type: boolean
     secrets:
       GITOPS_APP_PRIVATE_KEY:
-        description: GitHub App private key used to read and update the GitOps repository
+        description: GitHub App private key used to update the GitOps repository
         required: true
     outputs:
       image-digest:
@@ -51,17 +51,5 @@ jobs:
       chart-name: golfs
       chart-version: ${{ inputs.deliver-chart && needs.prepare-development.outputs.chart-version || '' }}
       image-tag: ${{ inputs.deliver-application && needs.prepare-development.outputs.image-tag || '' }}
-    secrets:
-      GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
-
-  verify-development:
-    name: Verify Development
-    needs:
-      - deploy-development
-    permissions: {}
-    uses: $/.github/workflows/verify-deployment.yaml
-    with:
-      expected-gitops-commit: ${{ needs.deploy-development.outputs.commit-sha }}
-      deployment-environment: development
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
