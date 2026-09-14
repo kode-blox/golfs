@@ -238,10 +238,11 @@ current `github.sha`, and an existing matching GitHub Release is returned
 unchanged. Both Git tags and their GitHub Releases therefore target the current
 pipeline commit.
 
-## Deferred supply-chain work
+## Supply-chain metadata
 
-Artifact provenance and signed attestations remain deferred. The current
-delivery graph does not claim either capability.
+Published container images retain the BuildKit provenance attestation generated
+during the final registry build. Signed attestations and software bills of
+materials remain deferred; the delivery graph does not claim either capability.
 
 ## Concurrency
 

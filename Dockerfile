@@ -34,7 +34,7 @@ LABEL org.opencontainers.image.authors="Sayak Mukhopadhyay" \
       org.opencontainers.image.vendor="kode-blox" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.title="GOLFS" \
-      org.opencontainers.image.description="Stateless Git LFS server for GitHub.com repositories and private S3-compatible object storage" \
+      org.opencontainers.image.description="Stateless Git LFS server for GitHub.com and S3-compatible storage" \
       org.opencontainers.image.base.name="docker.io/library/debian:trixie-slim"
 
 RUN apt-get update && \
