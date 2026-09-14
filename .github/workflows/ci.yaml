@@ -43,9 +43,10 @@ jobs:
         with:
           go-version-input: 1.27.0
           go-package: ./...
+          cache: false
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.13.2
 
