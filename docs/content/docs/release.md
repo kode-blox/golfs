@@ -224,10 +224,10 @@ image tag because the deployment receives an empty image-tag input.
 
 Git tags and GitHub Releases use these separate families:
 
-| Family      | Git tag                  | GitHub Release name            | Release-note pathspecs                             |
-| ----------- | ------------------------ | ------------------------------ | -------------------------------------------------- |
-| Application | `v<application version>` | `GOLFS v<application version>` | Top-level repository content excluding `charts/**` |
-| Chart       | `chart-v<chart version>` | `GOLFS chart v<chart version>` | `charts/**` only                                   |
+| Family      | Git tag                  | GitHub Release name            | Latest | Release-note pathspecs                             |
+| ----------- | ------------------------ | ------------------------------ | ------ | -------------------------------------------------- |
+| Application | `v<application version>` | `GOLFS v<application version>` | Yes    | Top-level repository content excluding `charts/**` |
+| Chart       | `chart-v<chart version>` | `GOLFS chart v<chart version>` | No     | `charts/**` only                                   |
 
 `release-tags@v1` ensures the selected tags in one non-force operation.
 `create-release@v1` runs only after that operation succeeds. It exchanges the
