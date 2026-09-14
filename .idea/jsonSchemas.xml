@@ -12,7 +12,7 @@
               <option name="patterns">
                 <list>
                   <Item>
-                    <option name="path" value=".golangci.yml" />
+                    <option name="path" value=".golangci.yaml" />
                   </Item>
                 </list>
               </option>
