@@ -37,6 +37,7 @@ jobs:
     with:
       deliver-application: ${{ inputs.component == 'application' || inputs.component == 'both' }}
       deliver-chart: ${{ inputs.component == 'chart' || inputs.component == 'both' }}
+      application-version: ${{ needs.ci.outputs.application-version }}
       deploy: ${{ inputs.deploy }}
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}

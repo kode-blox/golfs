@@ -51,6 +51,8 @@ jobs:
     permissions:
       contents: read
     uses: $/.github/workflows/validate-container.yaml
+    with:
+      application-version: ${{ needs.ci.outputs.application-version }}
 
   deliver-development:
     name: Deliver Development
@@ -68,6 +70,7 @@ jobs:
     with:
       deliver-application: ${{ needs.detect-delivery-changes.outputs.application-changed == 'true' }}
       deliver-chart: ${{ needs.detect-delivery-changes.outputs.chart-changed == 'true' }}
+      application-version: ${{ needs.ci.outputs.application-version }}
     secrets:
       GITOPS_APP_PRIVATE_KEY: ${{ secrets.GITOPS_APP_PRIVATE_KEY }}
 

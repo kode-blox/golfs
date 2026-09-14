@@ -61,7 +61,7 @@ jobs:
         if: inputs.component == 'application' || inputs.component == 'both'
         uses: SayakMukhopadhyay/github-actions/container-image-inspect@v1
         with:
-          version: build-${{ github.sha }}
+          tag: build-${{ github.sha }}
           registry: ghcr.io
           image-repository: ${{ github.repository }}
           username: ${{ github.actor }}

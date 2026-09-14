@@ -2,6 +2,11 @@ name: Validate Container
 
 on:
   workflow_call:
+    inputs:
+      application-version:
+        description: Validated application version embedded in the container metadata
+        required: true
+        type: string
 
 permissions: {}
 
@@ -17,7 +22,8 @@ jobs:
       - name: Build disposable container
         uses: SayakMukhopadhyay/github-actions/container-build-push@v1
         with:
-          version: build-${{ github.sha }}
+          tag: build-${{ github.sha }}
+          version: ${{ inputs.application-version }}
           registry: ghcr.io
           image-repository: ${{ github.repository }}
           working-directory: .

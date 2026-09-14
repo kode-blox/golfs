@@ -11,6 +11,10 @@ on:
         description: Prepare and publish the chart artifact from the current HEAD
         required: true
         type: boolean
+      application-version:
+        description: Validated application version embedded in container metadata
+        required: true
+        type: string
       deploy:
         description: Deploy the prepared artifacts to development
         required: false
@@ -37,6 +41,7 @@ jobs:
     with:
       deliver-application: ${{ inputs.deliver-application }}
       deliver-chart: ${{ inputs.deliver-chart }}
+      application-version: ${{ inputs.application-version }}
 
   deploy-development:
     name: Deploy Development

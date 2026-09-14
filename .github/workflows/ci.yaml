@@ -2,6 +2,10 @@ name: CI
 
 on:
   workflow_call:
+    outputs:
+      application-version:
+        description: Validated application version from the root VERSION file
+        value: ${{ jobs.build-go.outputs.application-version }}
 
 permissions: {}
 
@@ -10,6 +14,8 @@ jobs:
     name: Build Go
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      application-version: ${{ steps.versions.outputs.application-version }}
     permissions:
       contents: read
 
@@ -25,6 +31,11 @@ jobs:
         with:
           working-directory: .
           helm: 'true'
+
+      - id: versions
+        name: Read validated application version
+        shell: bash
+        run: printf 'application-version=%s\n' "$(<VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Check formatting
         run: test -z "$(git ls-files -z -- '*.go' | xargs -0 -r gofmt -l)"
