@@ -49,6 +49,7 @@ RUN groupadd --gid 1000 app && \
 WORKDIR /app
 
 COPY --chown=app:app --from=builder /app/golfs ./golfs
+COPY LICENSE THIRD_PARTY_NOTICES /usr/share/licenses/golfs/
 
 USER app
 EXPOSE 8080 9090

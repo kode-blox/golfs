@@ -2,5 +2,7 @@
 **
 !go.*
 !VERSION
+!LICENSE
+!THIRD_PARTY_NOTICES
 !cmd
 !internal
