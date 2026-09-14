@@ -258,7 +258,7 @@ The workflows reference these settings; they do not create or change them.
 
 Repository configuration:
 
-- Variable `GITOPS_APP_ID` with the GitHub App ID.
+- Variable `GITOPS_APP_CLIENT_ID` with the GitHub App Client ID.
 - Secret `GITOPS_APP_PRIVATE_KEY` with the App private key.
 - The GitHub App has repository `contents: write` permission and is installed
   for both `kode-blox/golfs` and
