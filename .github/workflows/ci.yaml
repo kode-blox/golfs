@@ -14,10 +14,10 @@ jobs:
     name: Build Go
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      application-version: ${{ steps.versions.outputs.application-version }}
     permissions:
       contents: read
+    outputs:
+      application-version: ${{ steps.versions.outputs.application-version }}
 
     steps:
       - name: Checkout and install dependencies
@@ -37,8 +37,18 @@ jobs:
         shell: bash
         run: printf 'application-version=%s\n' "$(<VERSION)" >> "$GITHUB_OUTPUT"
 
+      - name: Verify module metadata
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
       - name: Check formatting
         run: test -z "$(git ls-files -z -- '*.go' | xargs -0 -r gofmt -l)"
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.2
 
       - name: Vet
         run: go vet ./...
@@ -55,11 +65,6 @@ jobs:
           go-version-input: 1.27.0
           go-package: ./...
           cache: false
-
-      - name: Lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.13.2
 
       - name: Validate GitHub Actions workflows
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
@@ -82,3 +87,15 @@ jobs:
       - name: Render chart
         run: |
           helm template golfs charts --set environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID=Iv1_ci > /dev/null
+
+      - name: Render optional chart features
+        run: |
+          helm template golfs charts \
+            --set gateway.enabled=true \
+            --set externalSecrets.enabled=true \
+            --set externalSecrets.secretStore=ci-secret-store \
+            --set externalSecrets.targetSecretName=golfs-ci \
+            --set 'externalSecrets.secrets[0].secretKey=GOLFS_GITHUB_APP_PRIVATE_KEY_PEM' \
+            --set 'externalSecrets.secrets[0].remoteRef.key=ci/golfs/github-app-private-key' \
+            --set serviceMonitor.enabled=true \
+            > /dev/null

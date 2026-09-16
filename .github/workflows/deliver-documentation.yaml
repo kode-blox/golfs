@@ -64,8 +64,8 @@ jobs:
       url: ${{ steps.deployment.outputs['page-url'] }}
 
     steps:
-      - name: Deploy site
-        id: deployment
+      - id: deployment
+        name: Deploy site
         uses: SayakMukhopadhyay/github-actions/deploy-pages-artifact@v1
         with:
           github-token: ${{ github.token }}

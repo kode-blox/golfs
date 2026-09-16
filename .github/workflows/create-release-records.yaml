@@ -19,6 +19,7 @@ on:
         description: Validated chart version from release eligibility
         required: true
         type: string
+
 permissions: {}
 
 jobs:

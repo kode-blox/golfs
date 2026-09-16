@@ -10,6 +10,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://golfs.kodeblox.com"),
+  icons: {
+    icon: "/images/favicon.svg",
+  },
   title: {
     default: "GOLFS Docs",
     template: "%s | GOLFS Docs",
