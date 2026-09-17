@@ -21,16 +21,16 @@ RUN VERSION="$(tr -d '\r\n' < VERSION)" && \
     test -n "$VERSION" && \
     test -n "$COMMIT" && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
-    -trimpath \
-    -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
-    -o golfs ./cmd/golfs
+        -trimpath \
+        -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
+        -o golfs ./cmd/golfs
 
 # Production stage
 FROM debian:trixie-slim AS production
 
 LABEL org.opencontainers.image.authors="Sayak Mukhopadhyay" \
       org.opencontainers.image.url="https://github.com/orgs/kode-blox/packages/container/package/golfs" \
-      org.opencontainers.image.documentation="https://github.com/kode-blox/golfs/blob/main/README.md" \
+      org.opencontainers.image.documentation="https://golfs.kodeblox.com" \
       org.opencontainers.image.vendor="kode-blox" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.title="GOLFS" \
