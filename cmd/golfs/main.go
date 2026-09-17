@@ -59,7 +59,8 @@ func run() error {
 
 	forgeAuthorizer, err := githubforge.New(githubforge.Config{
 		ClientID: cfg.GitHubAppClientID, PrivateKeyPEM: cfg.GitHubAppPrivateKeyPEM,
-		Metrics: metrics,
+		AllowedInstallationIDs: cfg.GitHubAllowedInstallationIDs,
+		Metrics:                metrics,
 	})
 	if err != nil {
 		return err

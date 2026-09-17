@@ -7,7 +7,7 @@ GOLFS supports the Git LFS Basic Transfer protocol with SHA-256 objects up to 5,
 ## Request flow
 
 1. A Git LFS client sends Basic credentials to the repository-specific Batch endpoint. The password is a GitHub App user access token.
-2. GOLFS proves that the configured App is installed on the repository, that the user token can access that installation, and that the user has the needed repository permission.
+2. GOLFS proves that the configured App is installed on the repository, that GitHub returned an operator-allowlisted installation ID, that the user token can access that installation, and that the user has the needed repository permission.
 3. GOLFS resolves GitHub's canonical numeric repository ID and checks whether the expected S3 object exists with the requested size.
 4. GOLFS returns a presigned S3 PUT or GET action. Uploads also receive a GOLFS Verify action.
 5. Hetzner enforces the signed SHA-256 payload hash and conditional object creation during upload. GOLFS confirms object existence and size during Verify and every download Batch.

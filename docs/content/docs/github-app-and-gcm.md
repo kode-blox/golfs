@@ -5,16 +5,18 @@ description: Configure the GitHub App, Git Credential Manager, and repository-sp
 
 ## Create the GitHub App
 
-Create one GitHub App owned by the organization operating GOLFS:
+Create one GitHub App owned by the account operating the GOLFS deployment:
 
 - Enable Device Flow.
 - Keep expiring user access tokens enabled.
 - Grant repository Metadata permission as read-only. GitHub includes Metadata for every App.
 - Do not subscribe to webhooks.
-- Install the App only on repositories admitted to this GOLFS deployment.
+- Install the App only on selected organizations and repositories.
 - Generate an RSA private key and store it only in the GOLFS runtime Secret.
 
 Use the App client ID for both `GOLFS_GITHUB_APP_CLIENT_ID` and client-side GCM configuration. Do not use the numeric App ID and do not distribute a client secret.
+
+Set `GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS` to the comma-separated installation IDs that this deployment admits. GOLFS retrieves a requested repository's installation from GitHub using App authentication and requires the returned ID to appear in this operator-controlled allowlist. A public installation that is not listed remains unusable through this deployment.
 
 ## Configure GCM 2.9.0 generic OAuth
 
@@ -48,9 +50,9 @@ Before the first release, and after material changes to GCM, GitHub device flow,
 1. Remove any stored GOLFS credential from the test machine.
 2. Run a real LFS fetch or push with GCM 2.9.0.
 3. Complete device authorization without a client secret.
-4. Confirm the server receives a `ghu_` token and accepts it only for the configured App installation.
+4. Confirm the server receives a `ghu_` token and accepts it only for an allowlisted installation of the configured App.
 5. Confirm GCM refreshes an expired access token without another login.
-6. Confirm PAT, another App's `ghu_` token, and a user outside the installation all fail closed.
+6. Confirm PAT, another App's `ghu_` token, a user outside the installation, and a repository under a non-allowlisted installation all fail closed.
 
 If this exact secretless flow fails, stop release work. Do not add a token issuer or PAT fallback without a new architecture decision.
 

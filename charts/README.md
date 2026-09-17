@@ -19,7 +19,9 @@ Set `externalSecrets.enabled=true` to let the chart create an ExternalSecret
 instead. The External Secrets Operator CRDs must already be installed.
 
 The default GitHub App client ID is a lintable placeholder. Every real install
-must override `environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID`.
+must override `environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID` and
+`environmentsVars.GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS`. The latter is a
+comma-separated allowlist of GitHub-issued installation IDs and is not secret.
 
 ## Install
 
@@ -29,6 +31,7 @@ helm upgrade --install golfs ./charts \
   --create-namespace \
   --set environmentsVars.GOLFS_PUBLIC_URL=https://lfs.example.com \
   --set environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID=Iv1_example \
+  --set-string environmentsVars.GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS=12345678 \
   --set environmentsVars.GOLFS_S3_ENDPOINT=https://s3.example.com \
   --set environmentsVars.GOLFS_S3_REGION=us-east-1 \
   --set environmentsVars.GOLFS_S3_BUCKET=golfs \

@@ -43,20 +43,23 @@ const (
 
 // Config supplies GitHub App credentials and injectable test dependencies.
 type Config struct {
-	ClientID      string
-	PrivateKeyPEM string
-	APIURL        string
-	HTTPClient    *http.Client
-	Metrics       *observability.Metrics
+	ClientID               string
+	PrivateKeyPEM          string
+	AllowedInstallationIDs []int64
+	APIURL                 string
+	HTTPClient             *http.Client
+	Metrics                *observability.Metrics
 }
 
 // Authorizer validates GitHub App user tokens and resolves repository permissions.
 type Authorizer struct {
-	clientID   string
-	privateKey *rsa.PrivateKey
-	baseURL    *url.URL
-	client     *http.Client
-	metrics    *observability.Metrics
+	clientID                  string
+	privateKey                *rsa.PrivateKey
+	allowedInstallationIDs    map[int64]struct{}
+	allowedInstallationIDList []int64
+	baseURL                   *url.URL
+	client                    *http.Client
+	metrics                   *observability.Metrics
 
 	jwtMu      sync.Mutex
 	appJWT     string
@@ -85,9 +88,16 @@ func New(cfg Config) (*Authorizer, error) {
 	if strings.TrimSpace(cfg.ClientID) == "" {
 		return nil, errors.New("GitHub App client ID is required")
 	}
+	allowedInstallationIDs, err := allowedInstallationIDSet(cfg.AllowedInstallationIDs)
+	if err != nil {
+		return nil, err
+	}
 	return &Authorizer{
-		clientID: cfg.ClientID, privateKey: privateKey, baseURL: baseURL,
-		client: client, metrics: cfg.Metrics, now: time.Now,
+		clientID: cfg.ClientID, privateKey: privateKey,
+		allowedInstallationIDs:    allowedInstallationIDs,
+		allowedInstallationIDList: append([]int64(nil), cfg.AllowedInstallationIDs...),
+		baseURL:                   baseURL,
+		client:                    client, metrics: cfg.Metrics, now: time.Now,
 	}, nil
 }
 
@@ -101,6 +111,19 @@ func (a *Authorizer) Validate(ctx context.Context) error {
 	}
 	if app.ClientID != "" && app.ClientID != a.clientID {
 		return errors.New("GitHub authenticated App client ID does not match configuration")
+	}
+	for _, allowedID := range a.allowedInstallationIDList {
+		var installation struct {
+			ID       int64  `json:"id"`
+			ClientID string `json:"client_id"`
+		}
+		path := "/app/installations/" + strconv.FormatInt(allowedID, 10)
+		if err := a.request(ctx, http.MethodGet, path, "installation_validation", a.appAuthorization, &installation); err != nil {
+			return fmt.Errorf("validate allowed GitHub App installation %d: %w", allowedID, err)
+		}
+		if installation.ID != allowedID || (installation.ClientID != "" && installation.ClientID != a.clientID) {
+			return fmt.Errorf("allowed GitHub App installation %d does not match configured App", allowedID)
+		}
 	}
 	return nil
 }
@@ -126,6 +149,9 @@ func (a *Authorizer) Authorize(ctx context.Context, owner, repository, token str
 		return forge.Authorization{}, forge.ErrNotFound
 	}
 	if installation.ClientID != "" && installation.ClientID != a.clientID {
+		return forge.Authorization{}, forge.ErrNotFound
+	}
+	if _, allowed := a.allowedInstallationIDs[installation.ID]; !allowed {
 		return forge.Authorization{}, forge.ErrNotFound
 	}
 
@@ -159,6 +185,23 @@ func (a *Authorizer) Authorize(ctx context.Context, owner, repository, token str
 		permission = forge.PermissionWrite
 	}
 	return forge.Authorization{RepositoryID: repo.ID, Permission: permission, CanonicalName: repo.FullName}, nil
+}
+
+func allowedInstallationIDSet(ids []int64) (map[int64]struct{}, error) {
+	if len(ids) == 0 {
+		return nil, errors.New("at least one allowed GitHub App installation ID is required")
+	}
+	allowed := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			return nil, fmt.Errorf("allowed GitHub App installation ID must be positive: %d", id)
+		}
+		if _, exists := allowed[id]; exists {
+			return nil, fmt.Errorf("duplicate allowed GitHub App installation ID: %d", id)
+		}
+		allowed[id] = struct{}{}
+	}
+	return allowed, nil
 }
 
 func (a *Authorizer) userCanAccessInstallation(ctx context.Context, token string, target int64) (bool, error) {

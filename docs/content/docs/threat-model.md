@@ -18,7 +18,7 @@ The client, ingress, GOLFS replicas, GitHub API, and S3 provider are separate tr
 ## Controls
 
 - Every LFS operation requires Basic authentication. Public GitHub repository visibility never grants anonymous LFS access.
-- Only `ghu_` GitHub App user access tokens are accepted. Installation matching binds the user token to the configured App's repository installation.
+- Only `ghu_` GitHub App user access tokens are accepted. GOLFS accepts only GitHub-resolved installations in the operator allowlist, and installation matching binds the user token to that same repository installation.
 - Repository paths never form S3 keys. The canonical numeric repository ID resolved by GitHub is the namespace.
 - OIDs are exactly 64 lowercase hexadecimal characters and cannot escape their prefix.
 - Object size, request size, object count, HTTP headers, server timeouts, authorization cache size, and S3 concurrency are bounded.

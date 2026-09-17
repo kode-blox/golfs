@@ -15,6 +15,7 @@ environmentsVars:
   GOLFS_HTTP_ADDR: ":8080"
   GOLFS_ADMIN_ADDR: ":9090"
   GOLFS_GITHUB_APP_CLIENT_ID: Iv1_replace_me
+  GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS: "1"
   GOLFS_S3_ENDPOINT: https://s3.example.com
   GOLFS_S3_REGION: us-east-1
   GOLFS_S3_BUCKET: golfs

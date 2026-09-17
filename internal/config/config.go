@@ -49,8 +49,9 @@ type Config struct {
 	HTTPAddress  string
 	AdminAddress string
 
-	GitHubAppClientID      string
-	GitHubAppPrivateKeyPEM string
+	GitHubAppClientID            string
+	GitHubAppPrivateKeyPEM       string
+	GitHubAllowedInstallationIDs []int64
 
 	S3Endpoint     string
 	S3Region       string
@@ -80,6 +81,9 @@ func Load() (Config, error) {
 	}
 
 	var err error
+	if cfg.GitHubAllowedInstallationIDs, err = parseGitHubAllowedInstallationIDs(os.Getenv("GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS")); err != nil {
+		return Config{}, err
+	}
 	if cfg.AllowHTTP, err = envBool("GOLFS_DEV_ALLOW_HTTP", false); err != nil {
 		return Config{}, err
 	}
@@ -116,6 +120,9 @@ func (c Config) Validate() error {
 		if strings.TrimSpace(value) == "" {
 			return fmt.Errorf("%s is required", name)
 		}
+	}
+	if err := validateGitHubAllowedInstallationIDs(c.GitHubAllowedInstallationIDs); err != nil {
+		return err
 	}
 	if c.HTTPAddress == "" || c.AdminAddress == "" {
 		return errors.New("HTTP listener addresses must not be empty")
@@ -159,6 +166,46 @@ func (c Config) Validate() error {
 	}
 	if c.MaxObjectSize <= 0 || c.MaxObjectSize > MaximumMaxObjectSize {
 		return fmt.Errorf("GOLFS_MAX_OBJECT_SIZE must be between 1 and %d", MaximumMaxObjectSize)
+	}
+	return nil
+}
+
+func parseGitHubAllowedInstallationIDs(value string) ([]int64, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, errors.New("GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS is required")
+	}
+	parts := strings.Split(value, ",")
+	ids := make([]int64, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			return nil, errors.New("GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS must contain comma-separated positive integers")
+		}
+		id, err := strconv.ParseInt(part, 10, 64)
+		if err != nil || id <= 0 {
+			return nil, fmt.Errorf("GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS contains invalid installation ID %q", part)
+		}
+		ids = append(ids, id)
+	}
+	if err := validateGitHubAllowedInstallationIDs(ids); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+func validateGitHubAllowedInstallationIDs(ids []int64) error {
+	if len(ids) == 0 {
+		return errors.New("GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS is required")
+	}
+	seen := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			return fmt.Errorf("GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS contains invalid installation ID %d", id)
+		}
+		if _, exists := seen[id]; exists {
+			return fmt.Errorf("GOLFS_GITHUB_ALLOWED_INSTALLATION_IDS contains duplicate installation ID %d", id)
+		}
+		seen[id] = struct{}{}
 	}
 	return nil
 }

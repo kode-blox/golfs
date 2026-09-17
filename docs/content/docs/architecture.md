@@ -17,7 +17,7 @@ GitHub's numeric repository ID is the storage namespace. The path supplied by th
 github/{repository-id}/objects/{oid[0:2]}/{oid[2:4]}/{oid}
 ```
 
-An App installation is the repository-admission policy. Public visibility does not bypass authentication or App installation checks.
+The operator-configured installation-ID allowlist is the repository-admission policy. GOLFS resolves the repository installation through GitHub with App authentication, requires that GitHub-issued ID to be allowlisted, and then proves that the user token can access the same installation. Public App or repository visibility does not bypass these checks.
 
 ## Upload
 
