@@ -119,12 +119,16 @@ jobs:
           working-directory: .
 
       - name: Render chart
-        run: |
-          helm template golfs charts --set environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID=Iv1_ci > /dev/null
+        run: >-
+          helm template golfs charts
+          --set environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID=Iv1_ci
+          > /dev/null
 
       - name: Render optional chart features
         run: |
           helm template golfs charts \
+            --set environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID=Iv1_ci \
+            --set kubernetesComponent=ci-server \
             --set gateway.enabled=true \
             --set externalSecrets.enabled=true \
             --set externalSecrets.secretStore=ci-secret-store \
@@ -135,4 +139,6 @@ jobs:
             --set-string 'namespace.labels.goldilocks\.fairwinds\.com/enabled=true' \
             --set-string 'namespace.annotations.helm\.sh/resource-policy=keep' \
             --set serviceMonitor.enabled=true \
+            --set autoscaling.enabled=true \
+            --set serviceAccount.create=true \
             > /dev/null

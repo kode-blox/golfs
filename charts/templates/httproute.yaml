@@ -6,7 +6,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "golfs.labels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
 spec:
   parentRefs:
     - name: {{ include "golfs.fullname" . }}

@@ -47,6 +47,7 @@ Common labels
 {{- define "golfs.labels" -}}
 helm.sh/chart: {{ include "golfs.chart" . }}
 {{ include "golfs.selectorLabels" . }}
+app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}

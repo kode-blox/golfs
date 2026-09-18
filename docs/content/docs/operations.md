@@ -36,4 +36,4 @@ Object keys use `github/{repository-id}/objects/{first-two}/{next-two}/{full-oid
 
 ## Graceful shutdown
 
-On SIGINT or SIGTERM, GOLFS first makes readiness false, then gives both listeners up to 30 seconds to drain. Kubernetes should keep the default termination grace period at or above 30 seconds.
+On SIGINT or SIGTERM, GOLFS first makes readiness false, then gives both listeners a shared eight-second window to drain. Kubernetes should keep the termination grace period at or above the chart's ten-second default so the process can complete that shutdown before it is killed.

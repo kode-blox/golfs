@@ -6,13 +6,62 @@
     "image",
     "kubernetesComponent",
     "environmentsVars",
+    "extraEnvVarsConfigMap",
     "secret",
     "externalSecrets",
+    "imagePullSecrets",
+    "nameOverride",
+    "fullnameOverride",
+    "serviceAccount",
+    "podAnnotations",
+    "podLabels",
+    "podSecurityContext",
+    "securityContext",
     "containerPorts",
     "publicService",
     "metricsService",
-    "namespace"
+    "gateway",
+    "resources",
+    "livenessProbe",
+    "readinessProbe",
+    "autoscaling",
+    "terminationGracePeriodSeconds",
+    "volumes",
+    "volumeMounts",
+    "nodeSelector",
+    "tolerations",
+    "affinity",
+    "topologySpreadConstraints",
+    "namespace",
+    "serviceMonitor"
   ],
+  "definitions": {
+    "stringMap": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "externalSecretData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["secretKey", "remoteRef"],
+      "properties": {
+        "secretKey": {"type": "string", "minLength": 1},
+        "remoteRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key"],
+          "properties": {
+            "key": {"type": "string", "minLength": 1},
+            "property": {"type": "string"},
+            "version": {"type": "string"},
+            "conversionStrategy": {"type": "string"},
+            "decodingStrategy": {"type": "string"},
+            "metadataPolicy": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
   "properties": {
     "replicaCount": {
       "type": "integer",
@@ -20,7 +69,8 @@
     },
     "image": {
       "type": "object",
-      "required": ["repository", "pullPolicy"],
+      "additionalProperties": false,
+      "required": ["repository", "pullPolicy", "tag"],
       "properties": {
         "repository": {"type": "string", "minLength": 1},
         "pullPolicy": {"type": "string", "enum": ["Always", "IfNotPresent", "Never"]},
@@ -29,7 +79,9 @@
     },
     "kubernetesComponent": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[A-Za-z0-9]([A-Za-z0-9_.-]*[A-Za-z0-9])?$"
     },
     "environmentsVars": {
       "type": "object",
@@ -60,8 +112,10 @@
         "type": ["string", "number", "boolean"]
       }
     },
+    "extraEnvVarsConfigMap": {"type": "string"},
     "secret": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["existingSecret"],
       "properties": {
         "existingSecret": {"type": "string"}
@@ -69,17 +123,73 @@
     },
     "externalSecrets": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["enabled", "secretStore", "refreshInterval", "targetSecretName", "secrets"],
       "properties": {
         "enabled": {"type": "boolean"},
         "secretStore": {"type": "string"},
         "refreshInterval": {"type": "string", "minLength": 2},
         "targetSecretName": {"type": "string"},
-        "secrets": {"type": "array"}
+        "secrets": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/externalSecretData"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"enabled": {"const": true}},
+            "required": ["enabled"]
+          },
+          "then": {
+            "properties": {
+              "secretStore": {"minLength": 1},
+              "secrets": {
+                "minItems": 1,
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "secretKey": {"const": "GOLFS_GITHUB_APP_PRIVATE_KEY_PEM"}
+                  },
+                  "required": ["secretKey"]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1}
+        }
       }
     },
+    "nameOverride": {"type": "string"},
+    "fullnameOverride": {"type": "string"},
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["create", "automount", "annotations", "name"],
+      "properties": {
+        "create": {"type": "boolean"},
+        "automount": {"type": "boolean"},
+        "annotations": {"$ref": "#/definitions/stringMap"},
+        "name": {"type": "string"}
+      }
+    },
+    "podAnnotations": {"$ref": "#/definitions/stringMap"},
+    "podLabels": {"$ref": "#/definitions/stringMap"},
+    "podSecurityContext": {"type": ["object", "null"]},
+    "securityContext": {"type": ["object", "null"]},
     "containerPorts": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["http", "metrics"],
       "properties": {
         "http": {"type": "integer", "minimum": 1, "maximum": 65535},
@@ -88,38 +198,146 @@
     },
     "publicService": {
       "type": "object",
-      "required": ["type", "port"],
+      "additionalProperties": false,
+      "required": ["type", "port", "annotations"],
       "properties": {
-        "type": {"type": "string"},
-        "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+        "type": {"type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"]},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "annotations": {"$ref": "#/definitions/stringMap"}
       }
     },
     "metricsService": {
       "type": "object",
-      "required": ["type", "port"],
+      "additionalProperties": false,
+      "required": ["type", "port", "annotations"],
       "properties": {
-        "type": {"type": "string"},
-        "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+        "type": {"type": "string", "enum": ["ClusterIP"]},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "annotations": {"$ref": "#/definitions/stringMap"}
       }
+    },
+    "gateway": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "className", "annotations", "port", "hosts"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "className": {"type": "string"},
+        "annotations": {"$ref": "#/definitions/stringMap"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["host", "tlsSecretName"],
+            "properties": {
+              "host": {"type": "string", "minLength": 1},
+              "tlsSecretName": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"enabled": {"const": true}},
+            "required": ["enabled"]
+          },
+          "then": {
+            "properties": {
+              "className": {"minLength": 1},
+              "hosts": {"minItems": 1}
+            }
+          }
+        }
+      ]
+    },
+    "resources": {"type": ["object", "null"]},
+    "livenessProbe": {"type": ["object", "null"]},
+    "readinessProbe": {"type": ["object", "null"]},
+    "autoscaling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "minReplicas", "maxReplicas"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "minReplicas": {"type": "integer", "minimum": 1},
+        "maxReplicas": {"type": "integer", "minimum": 1},
+        "targetCPUUtilizationPercentage": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "maximum": 100
+        },
+        "targetMemoryUtilizationPercentage": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"enabled": {"const": true}},
+            "required": ["enabled"]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "properties": {"targetCPUUtilizationPercentage": {"type": "integer"}},
+                "required": ["targetCPUUtilizationPercentage"]
+              },
+              {
+                "properties": {"targetMemoryUtilizationPercentage": {"type": "integer"}},
+                "required": ["targetMemoryUtilizationPercentage"]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "volumes": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "volumeMounts": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "nodeSelector": {"$ref": "#/definitions/stringMap"},
+    "tolerations": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "affinity": {"type": ["object", "null"]},
+    "topologySpreadConstraints": {
+      "type": "array",
+      "items": {"type": "object"}
     },
     "namespace": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["create", "labels", "annotations"],
       "properties": {
         "create": {"type": "boolean"},
-        "labels": {
-          "type": "object",
-          "additionalProperties": {"type": "string"}
-        },
-        "annotations": {
-          "type": "object",
-          "additionalProperties": {"type": "string"}
-        }
+        "labels": {"$ref": "#/definitions/stringMap"},
+        "annotations": {"$ref": "#/definitions/stringMap"}
       }
     },
     "terminationGracePeriodSeconds": {
       "type": "integer",
       "minimum": 10
+    },
+    "serviceMonitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "labels", "interval", "scrapeTimeout"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "labels": {"$ref": "#/definitions/stringMap"},
+        "interval": {"type": "string", "minLength": 1},
+        "scrapeTimeout": {"type": "string", "minLength": 1}
+      }
     }
   }
 }

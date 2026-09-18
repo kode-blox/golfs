@@ -6,17 +6,26 @@ resources.
 
 ## Required secret
 
-By default, `secret.existingSecret` must name a Secret containing:
+By default, `secret.existingSecret` must name a Secret containing the GitHub App
+private key and, when the AWS SDK default credential chain is not being used,
+the S3 credentials:
 
 ```text
-GOLFS_GITHUB_APP_PRIVATE_KEY_PEM
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
+GOLFS_GITHUB_APP_PRIVATE_KEY_PEM (always required)
+AWS_ACCESS_KEY_ID (when using static credentials)
+AWS_SECRET_ACCESS_KEY (when using static credentials)
 AWS_SESSION_TOKEN (when required)
 ```
 
 Set `externalSecrets.enabled=true` to let the chart create an ExternalSecret
-instead. The External Secrets Operator CRDs must already be installed.
+instead. The External Secrets Operator CRDs must already be installed. The
+mapping list must contain `GOLFS_GITHUB_APP_PRIVATE_KEY_PEM`; AWS credentials
+may instead come from the AWS SDK default credential chain.
+
+Secret values injected through `envFrom` are read only when a container starts.
+After rotating either an existing Secret or an ExternalSecret-managed Secret,
+restart the Deployment. A Secret-reloader controller may automate that restart;
+configure it through `podAnnotations` when one is installed in the cluster.
 
 The default GitHub App client ID is a lintable placeholder. Every real install
 must override `environmentsVars.GOLFS_GITHUB_APP_CLIENT_ID` and
@@ -56,4 +65,6 @@ apply chart templates, so a chart-managed Namespace cannot bootstrap that Helm
 operation by itself.
 
 The Gateway and HTTPRoute target only the application Service. Keep the metrics
-Service cluster-internal because it exposes health, readiness, and metrics.
+Service cluster-internal because it exposes unauthenticated health, readiness,
+and metrics endpoints. The chart therefore accepts only `ClusterIP` for
+`metricsService.type`.

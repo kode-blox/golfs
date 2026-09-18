@@ -5,7 +5,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "golfs.labels" . | nindent 4 }}
-    app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -18,7 +17,6 @@ spec:
   selector:
     matchLabels:
       {{- include "golfs.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
   template:
     metadata:
       annotations:
@@ -31,7 +29,6 @@ spec:
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-        app.kubernetes.io/component: {{ .Values.kubernetesComponent }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
