@@ -137,6 +137,8 @@ topologySpreadConstraints: []
 
 namespace:
   create: false
+  labels: {}
+  annotations: {}
 
 serviceMonitor:
   enabled: false
