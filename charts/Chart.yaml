@@ -2,7 +2,7 @@ apiVersion: v2
 name: golfs
 description: Stateless Git LFS server for GitHub.com and S3-compatible storage
 type: application
-version: 0.0.3
+version: 0.0.4
 appVersion: "0.0.3"
 home: https://github.com/kode-blox/golfs
 sources:
