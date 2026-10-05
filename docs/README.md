@@ -1,6 +1,8 @@
 # GOLFS documentation site
 
-The documentation website uses the official `fumadocs-mdx` content source, Fumadocs Core and UI, and a statically exported Next.js application. Authored documentation lives in `content/docs`.
+The documentation website uses the `fumadocs-mdx` Macro API, Fumadocs Core and Base UI (`fumadocs-ui` aliases `@fumadocs/base-ui`), and a statically exported Next.js application. Authored documentation lives in `content/docs`.
+
+Collections are defined in `lib/source.ts` with lazy MDX bodies and processed Markdown. The Next.js integration compiles the macros without a collection-codegen or postinstall step. Shared URL helpers retain the root-hosted Markdown and Open Graph routes.
 
 The landing page and documentation pages use Fumadocs layouts, documentation pages expose copy and source-view controls, and the static export includes search, Open Graph images, and machine-readable Markdown routes.
 
