@@ -4,6 +4,12 @@ GOLFS is a stateless Git LFS server for GitHub.com repositories backed by privat
 
 GOLFS supports the Git LFS Basic Transfer protocol with SHA-256 objects up to 5,000,000,000 bytes. It deliberately excludes a database, multipart uploads, locking, garbage collection, object deletion, administration commands, and automatic fork provisioning.
 
+## Documentation
+
+Start with [Installation](https://golfs.kodeblox.com/installation), then [Configuration](https://golfs.kodeblox.com/configuration) and [GitHub App and GCM setup](https://golfs.kodeblox.com/github-app-and-gcm) to deploy the server and connect a client.
+
+To understand the system, read [Architecture](https://golfs.kodeblox.com/architecture), [Security](https://golfs.kodeblox.com/security), and [Language and foundations](https://golfs.kodeblox.com/language-and-foundations). For ongoing work, use [Operations](https://golfs.kodeblox.com/operations), [Testing](https://golfs.kodeblox.com/testing), and [Release process](https://golfs.kodeblox.com/release-process). The [security policy](SECURITY.md) covers private reporting and supported versions.
+
 ## Request flow
 
 1. A Git LFS client sends Basic credentials to the repository-specific Batch endpoint. The password is a GitHub App user access token.
@@ -57,9 +63,11 @@ go vet ./...
 go build ./cmd/golfs
 ```
 
+See [Testing](docs/content/docs/testing.md) for the current automated coverage, CI checks, and manual external-service gates. The [docs README](docs/README.md) covers website development.
+
 ## Deployment
 
-A non-root container and Helm chart are included. The chart exposes the public and operations listeners through separate Services and routes only the public Service through the optional Gateway API resources. See [the chart README](charts/README.md).
+A non-root container and Helm chart are included. The chart exposes the public and operations listeners through separate Services and routes only the public Service through the optional Gateway API resources. Follow [Installation](docs/content/docs/installation.md) for prerequisites, HTTPS routing, and acceptance checks; use [the chart README](charts/README.md) for Secret and chart installation details.
 
 ## License and provenance
 

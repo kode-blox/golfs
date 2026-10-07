@@ -5,6 +5,8 @@ description: Environment variables, startup validation, listeners, limits, and r
 
 GOLFS reads configuration from environment variables and fails startup before readiness if required values are missing or unsafe.
 
+Start with [Installation](/installation) for the deployment sequence. The chart maps non-secret values through `environmentsVars` and credentials through a runtime Secret; [GitHub App and GCM setup](/github-app-and-gcm) covers App provisioning and client authentication.
+
 ## Required
 
 | Variable                                | Meaning                                                  |
@@ -16,10 +18,8 @@ GOLFS reads configuration from environment variables and fails startup before re
 | `GOLFS_S3_ENDPOINT`                     | Absolute Hetzner Object Storage S3 API endpoint          |
 | `GOLFS_S3_REGION`                       | Signing region                                           |
 | `GOLFS_S3_BUCKET`                       | Existing private bucket                                  |
-| `AWS_ACCESS_KEY_ID`                     | S3 access key                                            |
-| `AWS_SECRET_ACCESS_KEY`                 | S3 secret key                                            |
 
-`AWS_SESSION_TOKEN` is supported when credentials are temporary. The AWS SDK default credential chain remains available for workload identity and other standard providers.
+For static S3 credentials, supply `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in the runtime Secret. `AWS_SESSION_TOKEN` is supported when credentials are temporary. These variables are not mandatory when another provider in the AWS SDK default credential chain supplies credentials, including workload identity.
 
 ## Optional
 

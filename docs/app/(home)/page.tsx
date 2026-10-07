@@ -10,22 +10,22 @@ export default function HomePage() {
           <p className="text-sm font-medium text-fd-muted-foreground">Git LFS infrastructure</p>
           <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">GOLFS Docs</h1>
           <p className="mx-auto max-w-2xl text-balance text-lg text-fd-muted-foreground">
-            Architecture, configuration, client setup, operations, security, and release guidance for the GOLFS
-            stateless Git LFS server.
+            Deploy GOLFS, configure Git LFS clients, understand its architecture and security, and operate and develop
+            the stateless server.
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-3">
           <Link
-            href="/architecture"
+            href="/installation"
             className="inline-flex h-10 items-center rounded-md bg-fd-primary px-4 text-sm font-medium text-fd-primary-foreground transition-colors hover:bg-fd-primary/90"
           >
-            Read the architecture
+            Get started
           </Link>
           <Link
-            href="/github-app-and-gcm"
+            href="/architecture"
             className="inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
           >
-            Configure a client
+            Understand the system
           </Link>
         </div>
       </div>

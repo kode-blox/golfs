@@ -3,6 +3,8 @@ title: Architecture
 description: Component boundaries, repository identity, and Git LFS upload and download flows.
 ---
 
+For deployment steps, start with [Installation](/installation). [Language and foundations](/language-and-foundations) maps these boundaries to implementation packages, and [Security](/security) explains the trust assumptions behind them.
+
 ## Boundaries
 
 The protocol handler depends only on `forge.Authorizer` and `storage.ObjectStore`. GitHub REST types remain inside the GitHub adapter, and AWS SDK types remain inside the S3 adapter. Future forge or storage adapters can be added without changing Git LFS wire shapes.

@@ -3,6 +3,8 @@ title: Operations
 description: Health endpoints, metrics, retention, backups, and troubleshooting guidance.
 ---
 
+Complete [Installation](/installation) and the manual acceptance gates in [Testing](/testing) before relying on a deployment. [Configuration](/configuration) describes runtime settings and startup validation; [Security](/security) explains the operator trust boundary.
+
 ## Endpoints
 
 `GET /healthz` reports only process liveness. `GET /readyz` becomes successful after startup validation and becomes unsuccessful during shutdown. `GET /metrics` exposes Prometheus metrics without authentication and must remain cluster-internal.

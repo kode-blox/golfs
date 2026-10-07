@@ -3,6 +3,8 @@ title: GitHub App and GCM setup
 description: Configure the GitHub App, Git Credential Manager, and repository-specific LFS endpoint.
 ---
 
+Operators need the App details below before completing [Installation](/installation) and [Configuration](/configuration). Once the service is reachable over HTTPS, client users can follow the GCM and repository setup steps.
+
 ## Create the GitHub App
 
 Create one GitHub App owned by the account operating the GOLFS deployment:
@@ -48,12 +50,14 @@ The next LFS operation should display GitHub's device authorization prompt. Comp
 Before the first release, and after material changes to GCM, GitHub device flow, or token refresh behavior:
 
 1. Remove any stored GOLFS credential from the test machine.
-2. Run a real LFS fetch or push with GCM 2.9.0.
+2. Run a real LFS fetch or push with GCM 2.9.0 or later.
 3. Complete device authorization without a client secret.
 4. Confirm the server receives a `ghu_` token and accepts it only for an allowlisted installation of the configured App.
 5. Confirm GCM refreshes an expired access token without another login.
 6. Confirm PAT, another App's `ghu_` token, a user outside the installation, and a repository under a non-allowlisted installation all fail closed.
 
 If this exact secretless flow fails, stop release work. Do not add a token issuer or PAT fallback without a new architecture decision.
+
+[Testing](/testing) also covers the storage-provider and upload/download acceptance gates.
 
 References: [GCM generic OAuth](https://github.com/git-ecosystem/git-credential-manager/blob/main/docs/generic-oauth.md), [GitHub App device flow](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app), and [refreshing user access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/refreshing-user-access-tokens).

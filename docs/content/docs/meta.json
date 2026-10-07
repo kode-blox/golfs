@@ -1,14 +1,17 @@
 {
   "title": "GOLFS Docs",
   "pages": [
-    "---Design and security---",
-    "architecture",
-    "threat-model",
-    "---Using GOLFS---",
+    "---Get started---",
+    "installation",
     "configuration",
     "github-app-and-gcm",
-    "---Operating GOLFS---",
+    "---Understand the system---",
+    "architecture",
+    "security",
+    "language-and-foundations",
+    "---Operate and develop---",
     "operations",
-    "release"
+    "testing",
+    "release-process"
   ]
 }

@@ -3,6 +3,8 @@ title: Release process
 description: Application and chart version authorities, staged delivery, manual delivery, and release records.
 ---
 
+Run the automatic checks and applicable manual external-service gates in [Testing](/testing) before delivery. [Installation](/installation) covers deployment prerequisites; this page describes the repository's publication and GitOps workflow.
+
 The root `VERSION` file is the current application release authority.
 `charts/VERSION` is the independent chart version authority.
 `charts/Chart.yaml.appVersion` records the application version associated with

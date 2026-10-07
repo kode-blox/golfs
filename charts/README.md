@@ -4,6 +4,8 @@ This chart deploys the stateless server, separate application and metrics Servic
 optional Gateway API route, and optional External Secrets and ServiceMonitor
 resources.
 
+For a first deployment, follow [Installation](https://golfs.kodeblox.com/installation) for storage, App, DNS/TLS, routing prerequisites, and acceptance checks. This README is the chart-specific Secret and installation reference; the install command below leaves public Gateway routing disabled unless you configure it.
+
 ## Required secret
 
 By default, `secret.existingSecret` must name a Secret containing the GitHub App
