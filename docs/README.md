@@ -24,15 +24,15 @@ Use the Node version in `.nvmrc`. From the repository root:
 
 ```shell
 npm ci
-npm run dev --workspace @golfs/docs
+npm run dev --workspace @kode-blox/golfs-docs
 ```
 
 The local site is available at `http://localhost:3000`. Validate the production export with:
 
 ```shell
-npm run lint --workspace @golfs/docs
-npm run types:check --workspace @golfs/docs
-npm run build --workspace @golfs/docs
+npm run lint --workspace @kode-blox/golfs-docs
+npm run types:check --workspace @kode-blox/golfs-docs
+npm run build --workspace @kode-blox/golfs-docs
 ```
 
 The GitHub Pages site is served from the root of `https://golfs.kodeblox.com/`. Configure that custom domain in the repository's Pages settings; the Actions-based deployment does not require a `CNAME` file.

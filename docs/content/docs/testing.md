@@ -35,9 +35,9 @@ Pull requests and manual runs of the main pipeline also select disposable contai
 For website changes, use the Node version in `.nvmrc` and the root npm workspace. After installing dependencies as described in the [docs README](https://github.com/kode-blox/golfs/blob/main/docs/README.md), run:
 
 ```shell
-npm run lint --workspace @golfs/docs
-npm run types:check --workspace @golfs/docs
-npm run build --workspace @golfs/docs
+npm run lint --workspace @kode-blox/golfs-docs
+npm run types:check --workspace @kode-blox/golfs-docs
+npm run build --workspace @kode-blox/golfs-docs
 ```
 
 The documentation workflow runs those checks and validates the generated static site. When changing page names, navigation, or links, inspect the exported HTML, search URLs, `llms.txt`, `llms-full.txt`, and individual Markdown routes in `docs/out`. The build does not validate the behavior of linked external services.

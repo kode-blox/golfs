@@ -20,13 +20,13 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Lint documentation site
-        run: npm run lint --workspace @golfs/docs
+        run: npm run lint --workspace @kode-blox/golfs-docs
 
       - name: Check documentation types
-        run: npm run types:check --workspace @golfs/docs
+        run: npm run types:check --workspace @kode-blox/golfs-docs
 
       - name: Build documentation site
-        run: npm run build --workspace @golfs/docs
+        run: npm run build --workspace @kode-blox/golfs-docs
 
       - name: Validate generated site
         uses: SayakMukhopadhyay/github-actions/validate-static-site@v1

@@ -1,5 +1,5 @@
 {
-  "name": "golfs",
+  "name": "@kode-blox/golfs",
   "version": "0.0.0",
   "description": "A stateless Git LFS server for GitHub repositories backed by S3-compatible object storage.",
   "private": true,
@@ -16,7 +16,7 @@
     "docs"
   ],
   "overrides": {
-    "@golfs/docs": {
+    "@kode-blox/golfs-docs": {
       "serve": {
         "compression": "1.8.2"
       }
