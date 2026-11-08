@@ -2,6 +2,7 @@
   "name": "@kode-blox/golfs",
   "version": "0.0.0",
   "description": "A stateless Git LFS server for GitHub repositories backed by S3-compatible object storage.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "repository": {
