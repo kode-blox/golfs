@@ -1,26 +1,25 @@
-import { Inter } from "next/font/google";
-import { Provider } from "@/components/provider";
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import "./global.css";
+import { Inter } from 'next/font/google';
+import { Provider } from '@/components/provider';
+import type { Metadata } from 'next';
+import './global.css';
 
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://golfs.kodeblox.com"),
+  metadataBase: new URL('https://golfs.kodeblox.com'),
   icons: {
-    icon: "/images/favicon.svg",
+    icon: '/images/favicon.svg',
   },
   title: {
-    default: "GOLFS Docs",
-    template: "%s | GOLFS Docs",
+    default: 'GOLFS Docs',
+    template: '%s | GOLFS Docs',
   },
-  description: "Documentation for the GOLFS Git LFS server.",
+  description: 'Documentation for the GOLFS Git LFS server.',
 };
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">

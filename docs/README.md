@@ -2,7 +2,7 @@
 
 The documentation website uses the `fumadocs-mdx` Macro API, Fumadocs Core and Base UI (`fumadocs-ui` aliases `@fumadocs/base-ui`), and a statically exported Next.js application. Authored documentation lives in `content/docs`.
 
-Collections are defined in `lib/source.ts` with lazy MDX bodies and processed Markdown. The Next.js integration compiles the macros without a collection-codegen or postinstall step. Shared URL helpers retain the root-hosted Markdown and Open Graph routes.
+Collections in `lib/source.ts` expose the compiled MDX body and table of contents directly. They also generate processed Markdown for the machine-readable routes. The Next.js integration compiles the macros during development and production builds.
 
 The landing page and documentation pages use Fumadocs layouts, documentation pages expose copy and source-view controls, and the static export includes search, Open Graph images, and machine-readable Markdown routes.
 
@@ -20,7 +20,7 @@ The shared Security outline uses these exact H2 headings, in order: **Protected 
 
 ## Author and validate
 
-Use the Node version in `.nvmrc`. From the repository root:
+Use the Node version in `.nvmrc`. Type checking uses the native TypeScript 7 compiler, and ESLint uses the TypeScript 6 JavaScript API. Run the following commands from the repository root.
 
 ```shell
 npm ci
