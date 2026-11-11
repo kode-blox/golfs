@@ -67,7 +67,7 @@ See [Testing](docs/content/docs/testing.md) for the current automated coverage, 
 
 ## Deployment
 
-A non-root container and Helm chart are included. The chart exposes the public and operations listeners through separate Services and routes only the public Service through the optional Gateway API resources. Follow [Installation](docs/content/docs/installation.md) for prerequisites, HTTPS routing, and acceptance checks; use [the chart README](charts/README.md) for Secret and chart installation details.
+A non-root container and Helm chart are included. The chart exposes the public and operations listeners through separate Services and routes only the public Service through the optional Gateway API resources. Follow [Installation](docs/content/docs/installation.mdx) for prerequisites, HTTPS routing, and acceptance checks; use [the chart README](charts/README.md) for Secret and chart installation details.
 
 ## License and provenance
 

@@ -10,7 +10,7 @@ The landing page and documentation pages use Fumadocs layouts, documentation pag
 
 The landing page starts at Installation. `content/docs/meta.json` defines the shared sidebar order:
 
-- **Get started:** [Installation](content/docs/installation.md), [Configuration](content/docs/configuration.md), [GitHub App and GCM setup](content/docs/github-app-and-gcm.md).
+- **Get started:** [Installation](content/docs/installation.mdx), [Configuration](content/docs/configuration.md), [GitHub App and GCM setup](content/docs/github-app-and-gcm.md).
 - **Understand the system:** [Architecture](content/docs/architecture.md), [Security](content/docs/security.md), [Language and foundations](content/docs/language-and-foundations.md).
 - **Operate and develop:** [Operations](content/docs/operations.md), [Testing](content/docs/testing.md), [Release process](content/docs/release-process.md).
 

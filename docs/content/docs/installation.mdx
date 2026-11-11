@@ -12,13 +12,21 @@ GOLFS runs as a stateless container with a private Hetzner Object Storage bucket
 3. Follow the operator portion of [GitHub App and GCM setup](/github-app-and-gcm): enable Device Flow, keep expiring user tokens, install the App on selected repositories, and generate its RSA private key. Record the client ID and the installation IDs this deployment will admit.
 4. Choose an HTTPS origin such as `https://lfs.example.com`, configure DNS, and prepare TLS termination. The public origin must have no path. Keep the operations Service inside the cluster.
 
+<Callout type="warning">
+
 For a bucket containing older GOLFS data, review [storage-layout cutover](/operations#storage-layout-cutover) before deployment. A new empty bucket avoids legacy-layout and integrity-contract migration requirements.
+
+</Callout>
 
 ## Supply the runtime Secret
 
 Create the `golfs` namespace and a Secret named `golfs` in that namespace through your platform's Secret-management process. The [chart README](https://github.com/kode-blox/golfs/blob/main/charts/README.md#required-secret) is the reference for required Secret keys, External Secrets configuration, and rotation behavior.
 
+<Callout type="warning">
+
 The App private key is always required as `GOLFS_GITHUB_APP_PRIVATE_KEY_PEM`. Static S3 credentials use `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, with `AWS_SESSION_TOKEN` when applicable. An alternative AWS SDK credential provider can supply S3 credentials; it does not remove the App private-key requirement. Keep these values out of the chart values file and source control.
+
+</Callout>
 
 If using External Secrets instead, install its operator and CRDs first and configure the chart's Secret store and key mappings. The chart does not create external provider accounts or credentials.
 
