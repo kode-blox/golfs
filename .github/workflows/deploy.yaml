@@ -17,7 +17,7 @@ on:
         type: string
         default: ""
       image-tag:
-        description: Optional GOLFS container image tag
+        description: Optional GOLFS image tag
         required: false
         type: string
         default: ""

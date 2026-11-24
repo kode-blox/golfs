@@ -35,8 +35,8 @@ The implementation remains split by responsibility:
 - `detect-delivery-changes.yaml` resolves the native event range through
   `Resolve-DeliveryEventRange.ps1`, then classifies application, chart,
   documentation, and release-authority changes.
-- `validate-container.yaml` performs the pull-request and manually dispatched
-  disposable container build with publishing disabled.
+- `validate-image.yaml` builds the image for pull requests and manual runs
+  without publishing it.
 - `deliver-documentation.yaml` builds and validates the documentation site,
   then deploys it for pushes and manual runs selected from `main`.
 - `deliver-development.yaml` prepares the selected development artifacts and,
@@ -73,7 +73,7 @@ A pull request runs:
 
 ```text
 detect delivery changes -> build and validate documentation when selected
-CI -> disposable container validation (push=false)
+CI -> validate image build (push=false)
 ```
 
 A manual dispatch of `pipeline.yaml` runs the same validation path for the
@@ -82,7 +82,7 @@ validates the site; a dispatch from `main` deploys that site:
 
 ```text
 detect delivery changes -> build documentation when selected
-ci -> validate-container (push=false)
+ci -> validate-image (push=false)
 ```
 
 The top-level pipeline contains these eight business stages:
@@ -91,7 +91,7 @@ The top-level pipeline contains these eight business stages:
 ci
 detect-delivery-changes
 deliver-documentation
-validate-container
+validate-image
 deliver-development
 release-eligibility
 deliver-production
@@ -148,7 +148,7 @@ Manual delivery is explicit and remains selected-commit scoped:
   them through the `development` Environment by default. Setting `deploy` to
   false stops after preparation and publication.
 - `manual-deliver-production.yaml` accepts the same component and ref choices.
-  Application delivery requires the selected `build-<github.sha>` container;
+  Application delivery requires the selected `build-<github.sha>` image;
   chart delivery packages the stable chart directly from the selected ref and
   does not require a development chart. The workflow validates the independent
   version authorities and stable Git tag conflicts, then sends the selected
@@ -191,12 +191,12 @@ chart eligible:       publish <chart version> while preserving the authored
 
 The application and chart decisions are independent:
 
-| Delivery         | Stable container promotion | Stable chart publication | Production update        | Release records       |
-| ---------------- | -------------------------- | ------------------------ | ------------------------ | --------------------- |
-| Ordinary main    | Skipped                    | Skipped                  | Skipped                  | None                  |
-| Application only | Application version        | Skipped                  | Image tag only           | Application only      |
-| Chart only       | Skipped                    | Chart version            | Chart version only       | Chart only            |
-| Both             | Application version        | Chart version            | Image and chart together | Application and chart |
+| Delivery         | Stable image promotion | Stable chart publication | Production update        | Release records       |
+| ---------------- | ---------------------- | ------------------------ | ------------------------ | --------------------- |
+| Ordinary main    | Skipped                | Skipped                  | Skipped                  | None                  |
+| Application only | Application version    | Skipped                  | Image tag only           | Application only      |
+| Chart only       | Skipped                | Chart version            | Chart version only       | Chart only            |
+| Both             | Application version    | Chart version            | Image and chart together | Application and chart |
 
 `release-eligibility.yaml` is the read-only production gate. A successful result
 with `release-needed` false skips production delivery and release records;
@@ -204,9 +204,9 @@ with `release-needed` false skips production delivery and release records;
 selected releases. An eligibility or delivery failure blocks release-record
 creation.
 
-## Container, chart, tag, and release conventions
+## Image, chart, tag, and release conventions
 
-Container tags never contain a `v` prefix:
+Image tags never contain a `v` prefix:
 
 - Development: `build-<full SHA>`
 - Stable application: `<application version>`
@@ -242,7 +242,7 @@ pipeline commit.
 
 ## Supply-chain metadata
 
-Published container images retain the BuildKit provenance attestation generated
+Published images retain the BuildKit provenance attestation generated
 during the final registry build. Signed attestations and software bills of
 materials remain deferred; the delivery graph does not claim either capability.
 

@@ -30,7 +30,7 @@ The tests do not provide complete coverage of every runtime limit, cache behavio
 
 The [CI workflow](https://github.com/kode-blox/golfs/blob/main/.github/workflows/ci.yaml) also verifies module metadata with `go mod tidy` and a clean module diff, checks `gofmt`, runs golangci-lint and actionlint, and builds the executable. CodeQL analyzes Go; dependency review applies on pull requests. Helm validation packages the chart without publishing and renders both defaults and a combination of optional Gateway, External Secrets, namespace, ServiceMonitor, autoscaling, and ServiceAccount resources. Rendering does not prove that controllers or CRDs exist in a target cluster.
 
-Pull requests and manual runs of the main pipeline also select disposable container validation with publishing disabled. See [Release process](/release-process) for the trigger and delivery graph.
+Pull requests and manual runs of the main pipeline also validate the image build without publishing it. See [Release process](/release-process) for the trigger and delivery graph.
 
 For website changes, use the Node version in `.nvmrc` and the root npm workspace. After installing dependencies as described in the [docs README](https://github.com/kode-blox/golfs/blob/main/docs/README.md), run:
 
