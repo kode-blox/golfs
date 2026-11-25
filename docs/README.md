@@ -35,7 +35,11 @@ npm run types:check --workspace @kode-blox/golfs-docs
 npm run build --workspace @kode-blox/golfs-docs
 ```
 
-The GitHub Pages site is served from the root of `https://golfs.kodeblox.com/`. Configure that custom domain in the repository's Pages settings; the Actions-based deployment does not require a `CNAME` file.
+The public documentation URL is `https://golfs.kodeblox.com/`.
+
+For cluster delivery, the [documentation workflow](../.github/workflows/deliver-documentation.yaml) uses the `documentation` GitHub environment with `GITOPS_ENVIRONMENT` set to `hetzner-fsn1-dc4-prod/docs`. The chart key `golfs` selects `golfs/envs/hetzner-fsn1-dc4-prod/docs/values.yaml` in Landscape, where the workflow updates `staticSites.image.tag`.
+
+The workflow publishes `ghcr.io/kode-blox/golfs/docs:build-<full-source-sha>` with the repository's `GITHUB_TOKEN`. Anonymous cluster pulls require the package to be public.
 
 The production export includes these machine-readable entry points:
 
